@@ -1,28 +1,89 @@
 # Agentic SDLC Platform
 
-An autonomous software development platform that takes a plain-English project description and produces a fully tested, GitHub-pushed, deployment-ready codebase — without any human intervention.
+🚀 **Live Demo:** https://agentic-sdlc-platform.up.railway.app/
 
-## What it does
+An autonomous multi-agent software engineering platform that transforms plain-English project requirements into tested, GitHub-pushed, deployment-ready applications with minimal human intervention.
 
-You describe a project. The platform runs a full software development lifecycle automatically:
+Built using LangGraph, FastAPI, OpenRouter, and a team of specialized AI agents that collaboratively execute the entire Software Development Life Cycle (SDLC).
 
-1. **Clarifier** — scores input ambiguity, asks targeted questions if needed
-2. **Business Analyst** — parses requirements into user stories and acceptance criteria
-3. **Scrum Master** — breaks the spec into sprint tickets with story points
-4. **Developer** — writes code for each ticket
-5. **QA Engineer** — runs pytest against every ticket; feeds failures back to Developer for self-healing retries (up to 3 attempts per ticket)
-6. **Git Agent** — commits each sprint to a local git repo with tags
-7. **GitHub Agent** — pushes to your GitHub repository and opens a pull request
-8. **DevOps Agent** — generates Dockerfile, docker-compose, and CI/CD pipeline
+## Key Features
 
-The Dev↔QA loop is the core: if tests fail, the exact error output is sent back to the Developer, which rewrites the code and tries again. No patching — full rewrites with context.
+* Multi-agent architecture with specialized Business Analyst, Scrum Master, Developer, QA, Git, GitHub, and DevOps agents
+* Autonomous ticket generation, planning, implementation, testing, and deployment workflows
+* Self-healing Dev ↔ QA feedback loop with automatic retries based on test failures
+* Retrieval-Augmented Generation (RAG) powered context-aware code generation
+* OpenRouter LLM routing with automatic model failover
+* Real-time execution monitoring via Server-Sent Events (SSE)
+* Automated Git commits, GitHub pushes, pull requests, Dockerfile generation, and CI/CD setup
+* One-click cloud deployment using Railway
 
-## Tech stack
+## Architecture Overview
 
-- **Backend**: FastAPI + LangGraph (agentic pipeline) + Python 3.11+
-- **LLM routing**: OpenRouter (free models with automatic failover)
-- **Frontend**: Single HTML file — no build step, no dependencies
-- **Deployment**: Railway (one-click from GitHub)
+The platform simulates a complete software engineering team:
+
+Project Idea
+↓
+Clarifier Agent
+↓
+Business Analyst Agent
+↓
+Scrum Master Agent
+↓
+Developer Agent
+↓
+QA Engineer Agent
+↓
+Git Agent
+↓
+GitHub Agent
+↓
+DevOps Agent
+↓
+Deployment Ready Application
+
+Unlike traditional code-generation tools, the platform validates every generated feature through a QA feedback cycle. Failed tests are automatically returned to the Developer Agent, enabling iterative code regeneration until quality requirements are satisfied.
+
+## Live Workflow
+
+1. User submits a project description
+2. Clarifier Agent identifies ambiguity and gathers missing requirements
+3. Business Analyst generates user stories and acceptance criteria
+4. Scrum Master creates sprint tickets with story points
+5. Developer Agent implements ticket functionality
+6. QA Agent executes tests and validates acceptance criteria
+7. Failed implementations are automatically re-generated
+8. Git and GitHub Agents manage version control
+9. DevOps Agent creates deployment artifacts
+10. Application is ready for deployment
+
+## Tech Stack
+
+### AI & Agent Orchestration
+
+* LangGraph
+* LangChain
+* OpenRouter
+* Multi-Agent Systems
+
+### Backend
+
+* FastAPI
+* Python 3.11+
+* Server-Sent Events (SSE)
+
+### DevOps
+
+* Docker
+* GitHub Actions
+* Railway
+
+### AI Engineering
+
+* RAG
+* Vector Search
+* Context Management
+* Autonomous Workflow Execution
+
 
 ## Project structure
 
