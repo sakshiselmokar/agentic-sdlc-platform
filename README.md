@@ -1,237 +1,184 @@
 # Agentic SDLC Platform
 
-> An end-to-end autonomous software development platform where AI agents handle every role in the software development lifecycle — from requirements to deployed code — with zero manual intervention.
-
-Built with **LangGraph + FastAPI + OpenRouter free models**.
-
----
+An autonomous software development platform that takes a plain-English project description and produces a fully tested, GitHub-pushed, deployment-ready codebase — without any human intervention.
 
 ## What it does
 
-You give it a plain-English project description. It does everything else:
+You describe a project. The platform runs a full software development lifecycle automatically:
 
-```
-"Build a task management REST API with user auth"
-           ↓
-  BA Agent         → structured spec, user stories, acceptance criteria
-  Scrum Agent      → epics, tickets, story points, sprint plan
-  Developer Agent  → working FastAPI code (7 files)
-  QA Agent         → runs pytest, reports pass/fail with root cause
-  Git Agent        → real git repo, commits per sprint, v0.1.0 tag
-  DevOps Agent     → Dockerfile, docker-compose.yml, Makefile
-           ↓
-  Complete project ready to run
-```
+1. **Clarifier** — scores input ambiguity, asks targeted questions if needed
+2. **Business Analyst** — parses requirements into user stories and acceptance criteria
+3. **Scrum Master** — breaks the spec into sprint tickets with story points
+4. **Developer** — writes code for each ticket
+5. **QA Engineer** — runs pytest against every ticket; feeds failures back to Developer for self-healing retries (up to 3 attempts per ticket)
+6. **Git Agent** — commits each sprint to a local git repo with tags
+7. **GitHub Agent** — pushes to your GitHub repository and opens a pull request
+8. **DevOps Agent** — generates Dockerfile, docker-compose, and CI/CD pipeline
 
----
+The Dev↔QA loop is the core: if tests fail, the exact error output is sent back to the Developer, which rewrites the code and tries again. No patching — full rewrites with context.
 
-## Architecture
+## Tech stack
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                     Orchestrator                        │
-│   LLM decides next agent → Python validates → executes  │
-└──────────┬──────────────────────────────────────────────┘
-           │
-    ┌──────▼──────────────────────────────────────┐
-    │           LangGraph StateGraph               │
-    │                                             │
-    │  BA → Scrum → Dev → QA → Git → DevOps      │
-    │         ↑___________↓  (fix loop)           │
-    └─────────────────────────────────────────────┘
-           │
-    ┌──────▼──────────────────────────────────────┐
-    │           Shared Platform State              │
-    │   artifacts · messages · errors · decisions  │
-    └─────────────────────────────────────────────┘
-```
-
-### Routing: truly agentic
-
-The orchestrator LLM decides what agent runs next. Python safety rules validate the decision and override only when a loop is detected:
-
-- LLM says `qa` but QA already failed 3 times → override to `devops`
-- LLM says `developer` but dev ran 6 times → override to `devops`  
-- LLM says `devops` but QA hasn't run yet → override to `qa`
-- Otherwise → **LLM decision accepted** ✓
-
----
+- **Backend**: FastAPI + LangGraph (agentic pipeline) + Python 3.11+
+- **LLM routing**: OpenRouter (free models with automatic failover)
+- **Frontend**: Single HTML file — no build step, no dependencies
+- **Deployment**: Railway (one-click from GitHub)
 
 ## Project structure
 
 ```
-agentic_platform/
-│
-├── orchestrator/
-│   ├── state.py              # PlatformState, Artifact, OrchestratorDecision (Pydantic)
-│   ├── orchestrator_node.py  # LangGraph node + hybrid LLM/Python routing
-│   ├── prompts.py            # System prompt + dynamic user prompt builder
-│   └── llm_client.py         # OpenRouter client (free models, cached)
-│
-├── agents/
-│   ├── ba_agent.py           # Business Analyst — parses input → structured spec
-│   ├── scrum_agent.py        # Scrum Master — spec → epics, tickets, sprint plan
-│   ├── dev_agent.py          # Developer — tickets → FastAPI code (7 files)
-│   ├── qa_agent.py           # QA Engineer — runs pytest, collection check, LLM analysis
-│   ├── git_agent.py          # Git — creates repo, commits per sprint, tags release
-│   ├── devops_agent.py       # DevOps — Dockerfile, docker-compose, Makefile
-│   └── stub_agents.py        # Finalize + error handler nodes
-│
+agentic_platform_v5/
 ├── api/
-│   └── main.py               # FastAPI server — /run, /run/stream, /health
-│
-├── graph.py                  # LangGraph StateGraph — wires all nodes + edges
-├── run_cli.py                # CLI runner with rich output
+│   └── main.py              # FastAPI app + SSE streaming endpoints
+├── agents/
+│   ├── clarifier_agent.py
+│   ├── ba_agent.py
+│   ├── scrum_agent.py
+│   ├── dev_agent.py
+│   ├── qa_agent.py
+│   ├── git_agent.py
+│   ├── github_agent.py
+│   ├── devops_agent.py
+│   └── stub_agents.py
+├── orchestrator/
+│   ├── orchestrator_node.py # routing logic + ticket lifecycle
+│   ├── prompts.py           # LLM prompts
+│   └── state.py             # LangGraph state schema
+├── graph/
+│   └── graph.py             # LangGraph pipeline definition
+├── index.html               # Frontend (served by FastAPI)
 ├── requirements.txt
-└── .env.example
+├── railway.toml
+└── .env                     # local secrets (never committed)
 ```
 
----
+## Local setup
 
-## What changed from the original (v1 → v2)
-
-| File | What changed |
-|------|-------------|
-| `agents/git_agent.py` | **NEW** — creates real git repo, commits per sprint, tags v0.1.0, generates README |
-| `agents/devops_agent.py` | **NEW** — generates Dockerfile, docker-compose.yml, Makefile, .env.example |
-| `agents/qa_agent.py` | Added **collection check** — runs `pytest --collect-only` first; extracts exact ImportError and sends to Dev agent before wasting a full test run |
-| `agents/dev_agent.py` | Improved QA feedback loop — detects `collection_failed` and passes exact import error with `CRITICAL:` prefix; added safe test pattern rules to system prompt |
-| `orchestrator/orchestrator_node.py` | Restored **truly agentic hybrid routing** — LLM decides, Python validates; added git agent routing (QA pass → git → devops); fixed finalize condition |
-| `orchestrator/state.py` | Added `"git"` to `AgentName` literal type |
-| `orchestrator/prompts.py` | Artifact summary now **deduplicated** — shows only latest per agent, keeps orchestrator context window short |
-| `graph.py` | Registered `git_agent` and `devops_agent` nodes; added edges |
-| `run_cli.py` | Added `_print_git_detail()` and `_print_devops_detail()` printers; improved QA section shows `⛔ collection failed` clearly |
-
----
-
-## Quick start
-
-**1. Get a free OpenRouter API key**
-
-Go to [openrouter.ai](https://openrouter.ai) → Sign up → Keys → Create key. Free, no credit card.
-
-**2. Configure**
+### 1. Clone and create virtualenv
 
 ```bash
-cp .env.example .env
-# Edit .env and set:
-# OPENROUTER_API_KEY=sk-or-v1-your-key-here
-# ORCHESTRATOR_MODEL=mistralai/mistral-7b-instruct:free
-# AGENT_MODEL=mistralai/mistral-7b-instruct:free
-```
-
-**3. Install dependencies**
-
-```bash
+git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git
+cd YOUR_REPO/agentic_platform_v5
 python -m venv venv
-venv\Scripts\activate     # Windows
-# source venv/bin/activate  # Mac/Linux
 
+# Windows
+venv\Scripts\activate
+
+# macOS / Linux
+source venv/bin/activate
+```
+
+### 2. Install dependencies
+
+```bash
 pip install -r requirements.txt
 ```
 
-**4. Run**
+### 3. Create `.env` file
+
+Create a file named `.env` in the `agentic_platform_v5/` directory (same folder as `api/`):
+
+```env
+OPENROUTER_API_KEY=sk-or-v1-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+GITHUB_REPO=your-username/your-repo-name
+```
+
+**Getting these keys:**
+
+| Key | Where to get it |
+|-----|----------------|
+| `OPENROUTER_API_KEY` | [openrouter.ai/keys](https://openrouter.ai/keys) — free tier available |
+| `GITHUB_TOKEN` | GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic) → Generate new token → tick **repo** scope |
+| `GITHUB_REPO` | Format: `username/repo-name` — the repo where code will be pushed |
+
+### 4. Run locally
 
 ```bash
-# CLI (shows full pipeline with rich output)
-python run_cli.py "Build a task management REST API with user auth"
-
-# Or start the API server
+cd agentic_platform_v5
 uvicorn api.main:app --reload --port 8000
-# POST http://localhost:8000/run  {"project_input": "Build a..."}
 ```
 
----
+Open [http://localhost:8000](http://localhost:8000)
 
-## Free model notes
+## Deployment on Railway
 
-OpenRouter free tier: **50 requests/day** per model. A full pipeline run uses ~15–25 requests.
+### Step 1 — Push to GitHub (see commit steps below)
 
-Recommended free models (set in `.env`):
+### Step 2 — Create Railway project
 
-| Model | Best for | Notes |
-|-------|----------|-------|
-| `mistralai/mistral-7b-instruct:free` | Reliable default | Most consistent JSON output |
-| `meta-llama/llama-3.3-70b-instruct:free` | Better reasoning | Hits rate limits faster |
-| `openrouter/auto` | Auto-selects | Spreads load across free models |
+1. Go to [railway.app](https://railway.app) and sign in with GitHub
+2. Click **New Project** → **Deploy from GitHub repo**
+3. Select your repository
+4. Railway auto-detects Python via nixpacks — no configuration needed
 
-If you hit the daily limit: wait until midnight UTC, or add $5 credits to OpenRouter (gives 1000 req/day).
+### Step 3 — Add environment variables on Railway
 
----
-
-## Sample output
+In your Railway project → **Variables** tab, add:
 
 ```
-━━━ BA Spec Detail ━━━
-Project: TaskAPI
-User Stories (5)
-  US-001 As a user, I want to create task
-    ✓ valid auth token required
-    ✓ task title required
-    ✓ returns 201 with task ID
-
-━━━ Scrum Plan Detail ━━━
-Epics (3) · Tickets (9) · 2 Sprints
-
-━━━ Developer Output ━━━
-Language: python / fastapi
-Files generated (7)
-  ✓ main.py        (93 lines)
-  ✓ tests/test_api.py  (36 lines)
-
-━━━ QA Test Report ━━━
-Result: FAIL
-Tests: 1 passed / 3 total
-Root cause: datetime.utcnow() causes JWT timezone mismatch
-
-━━━ Git Repository ━━━
-Project: TaskAPI  Tag: v0.1.0
-Commits
-  ● Sprint 1: Auth foundation and task creation
-  ● Sprint 2: CRUD completion and edge cases
-
-━━━ DevOps Deployment Package ━━━
-Status: deployed_with_warnings  QA: fail
-Files: Dockerfile · docker-compose.yml · Makefile · .env.example
-Run: docker-compose up --build
+OPENROUTER_API_KEY = sk-or-v1-xxxxxxxxxxxxxxxx
+GITHUB_TOKEN       = ghp_xxxxxxxxxxxxxxxxxxxxxxxx
+GITHUB_REPO        = your-username/your-repo-name
 ```
 
----
+> ⚠️ Never put real keys in `railway.toml` or any committed file. Railway Variables are encrypted at rest.
 
-## Extending the platform
+### Step 4 — Deploy
 
-Adding a new agent takes 3 steps:
+Railway deploys automatically on every push to your main branch. Your app will be live at:
+```
+https://your-project-name.up.railway.app
+```
 
-1. **Create `agents/your_agent.py`** with a `your_agent_node(state) -> dict` function
-2. **Register in `graph.py`** — `graph.add_node("your_agent", your_agent_node)` + add edge back to orchestrator
-3. **Add to routing** in `orchestrator/orchestrator_node.py` — add to `route_map` and add a routing rule
+The frontend and backend share the same URL — no CORS issues.
 
-The orchestrator LLM will automatically learn to use it from the system prompt in `orchestrator/prompts.py`.
+## How the self-healing loop works
 
----
+```
+Developer writes code
+        ↓
+QA runs pytest
+        ↓
+   Tests pass? ──Yes──→ Next ticket
+        ↓ No
+   (up to 3 attempts)
+QA error report → Developer
+Developer rewrites with error context
+        ↓
+QA runs again
+        ↓
+   Still failing after 3 attempts? → Skip ticket, continue
+```
+
+The QA failure output (exact pytest stderr) is injected directly into the Developer's next prompt. The Developer sees which tests failed and why, and rewrites accordingly — not a patch, a full informed retry.
 
 ## API endpoints
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/health` | Liveness check |
-| `GET` | `/graph/info` | Shows compiled graph nodes |
-| `POST` | `/run` | Run full pipeline, returns when done |
-| `POST` | `/run/stream` | Same but streams NDJSON events |
+| `GET` | `/` | Serves the frontend HTML |
+| `POST` | `/run/stream` | Start pipeline, returns SSE stream |
+| `POST` | `/clarify/stream` | Submit clarification answers, returns SSE stream |
 
-```bash
-curl -X POST http://localhost:8000/run \
-  -H "Content-Type: application/json" \
-  -d '{"project_input": "Build a blog API with posts and comments"}'
+### SSE event types
+
+```json
+{ "type": "pipeline_start" }
+{ "type": "awaiting_clarification", "questions": [...], "clarity_score": 42 }
+{ "type": "orchestrator", "next_agent": "developer", "reasoning": "..." }
+{ "type": "agent_done", "agent": "qa", "status": "ok", "detail": { ... } }
+{ "type": "pipeline_done", "duration_seconds": 94.2 }
+{ "type": "error", "message": "..." }
 ```
 
----
+## Known limitations
 
-## Built with
+- **OpenRouter free tier**: 50 requests/day limit — for serious use, add credits or use your own API keys
+- **GitHub token scope**: needs `repo` scope; if you want CI files pushed, also tick `workflow`
+- **QA runs locally**: tests execute in a temp directory on the server — don't run on untrusted inputs in production without sandboxing
+- **No persistence**: pipeline state lives in memory; server restart clears it
 
-- [LangGraph](https://github.com/langchain-ai/langgraph) — agent graph orchestration
-- [LangChain](https://github.com/langchain-ai/langchain) — LLM abstraction
-- [FastAPI](https://fastapi.tiangolo.com) — API server
-- [OpenRouter](https://openrouter.ai) — free LLM access (Mistral, Llama, Gemini, etc.)
-- [Rich](https://github.com/Textualize/rich) — terminal output
-- [Pydantic](https://docs.pydantic.dev) — data validation
+## License
+
+MIT

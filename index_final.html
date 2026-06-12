@@ -1,0 +1,1610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agentic SDLC Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Clash+Display:wght@500;600;700&family=Cabinet+Grotesk:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Syne:wght@600;700;800&display=swap');
+
+:root {
+  --bg: #080810;
+  --surface: #0f0f1a;
+  --surface2: #161625;
+  --surface3: #1e1e30;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --accent: #4fffb0;
+  --accent-dim: rgba(79,255,176,0.12);
+  --accent2: #7b5ea7;
+  --accent3: #ff9d3d;
+  --accent4: #5b8dee;
+  --text: #e8e8f2;
+  --text2: #9898b0;
+  --text3: #5a5a72;
+  --danger: #ff5572;
+  --mono: 'DM Mono', monospace;
+  --display: 'Syne', sans-serif;
+  --body: 'Cabinet Grotesk', 'Syne', sans-serif;
+
+  --c-ba: #5b8dee;
+  --c-scrum: #a78bfa;
+  --c-dev: #34d399;
+  --c-patcher: #fb923c;
+  --c-qa: #fbbf24;
+  --c-git: #f472b6;
+  --c-github: #c084fc;
+  --c-devops: #22d3ee;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body);
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── NOISE OVERLAY ── */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 1000;
+  opacity: 0.4;
+}
+
+/* ── HEADER ── */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 28px;
+  height: 56px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 10;
+  background: rgba(8,8,16,0.9);
+  backdrop-filter: blur(20px);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo-gem {
+  width: 28px; height: 28px;
+  background: conic-gradient(from 180deg, var(--accent), #00b4d8, var(--accent2), var(--accent));
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  color: #000;
+  font-weight: 800;
+  font-family: var(--mono);
+}
+
+.logo-name {
+  font-family: var(--display);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+.logo-name em { color: var(--accent); font-style: normal; }
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.status-pill {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text2);
+}
+
+.status-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+}
+.status-dot.busy { background: var(--accent3); box-shadow: 0 0 8px var(--accent3); animation: breathe 1.5s ease-in-out infinite; }
+.status-dot.warn { background: var(--accent2); box-shadow: 0 0 8px var(--accent2); }
+
+@keyframes breathe { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+
+/* ── APP SHELL ── */
+.app {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ── LEFT PANEL ── */
+.left-panel {
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+/* ── INPUT SECTION ── */
+.input-wrap {
+  padding: 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: var(--text3);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+textarea {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 13px;
+  line-height: 1.6;
+  resize: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+  min-height: 88px;
+}
+textarea:focus {
+  border-color: rgba(79,255,176,0.4);
+  box-shadow: 0 0 0 3px rgba(79,255,176,0.06);
+}
+textarea::placeholder { color: var(--text3); }
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.chip {
+  padding: 3px 9px;
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 11px;
+  color: var(--text3);
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: var(--mono);
+}
+.chip:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+.run-btn {
+  width: 100%;
+  margin-top: 12px;
+  padding: 13px;
+  background: var(--accent);
+  color: #000;
+  border: none;
+  border-radius: 10px;
+  font-family: var(--display);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s;
+  letter-spacing: 0.2px;
+  position: relative;
+  overflow: hidden;
+}
+.run-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.5s;
+}
+.run-btn:hover:not(:disabled)::before { transform: translateX(100%); }
+.run-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(79,255,176,0.3); }
+.run-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.run-btn.running { background: var(--surface3); color: var(--accent); border: 1px solid rgba(79,255,176,0.3); }
+
+/* ── CLARIFY PANEL ── */
+.clarify-panel {
+  display: none;
+  flex-direction: column;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(135deg, rgba(123,94,167,0.08), rgba(79,255,176,0.03));
+  flex-shrink: 0;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.clarify-panel.open { display: flex; }
+
+.clarify-header {
+  padding: 14px 20px 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: sticky;
+  top: 0;
+  background: rgba(15,15,26,0.95);
+  backdrop-filter: blur(8px);
+  z-index: 2;
+  border-bottom: 1px solid var(--border);
+}
+
+.clarify-icon {
+  width: 28px; height: 28px;
+  background: rgba(123,94,167,0.2);
+  border: 1px solid rgba(123,94,167,0.4);
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.clarify-title-text {
+  flex: 1;
+}
+.clarify-title-text strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 1px;
+}
+.clarify-title-text span {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text3);
+}
+
+.clarify-body { padding: 14px 20px 6px; display: flex; flex-direction: column; gap: 12px; }
+
+.cq {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.cq:focus-within { border-color: rgba(123,94,167,0.5); }
+
+.cq-top {
+  padding: 12px 14px 10px;
+}
+
+.cq-num {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--accent2);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.cq-q {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.4;
+  margin-bottom: 4px;
+}
+
+.cq-why {
+  font-size: 11px;
+  color: var(--text3);
+  font-family: var(--mono);
+  font-style: italic;
+}
+
+.cq-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  padding: 0 14px 10px;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+
+.cq-chip {
+  padding: 4px 11px;
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  font-size: 11px;
+  color: var(--text2);
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: var(--mono);
+}
+.cq-chip:hover { border-color: var(--accent2); color: var(--accent2); background: rgba(123,94,167,0.12); }
+.cq-chip.sel { border-color: var(--accent2); color: var(--accent2); background: rgba(123,94,167,0.18); }
+
+.cq-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-top: 1px solid var(--border);
+  padding: 9px 14px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11px;
+  outline: none;
+}
+.cq-input::placeholder { color: var(--text3); }
+
+.clarify-footer {
+  padding: 10px 20px 14px;
+}
+
+.clarify-submit {
+  width: 100%;
+  padding: 11px;
+  background: linear-gradient(135deg, var(--accent2), #9b59d4);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-family: var(--display);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 0.2px;
+}
+.clarify-submit:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(123,94,167,0.4); }
+
+/* ── PIPELINE VISUALIZATION ── */
+.pipeline-wrap {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.pipeline-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 16px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* agent box */
+.ag-box {
+  width: 100%;
+  max-width: 320px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+  cursor: default;
+}
+
+.ag-box::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  border-radius: 3px 0 0 3px;
+  background: var(--c);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.ag-box.active { border-color: var(--c); background: rgba(255,255,255,0.03); }
+.ag-box.active::before { opacity: 1; }
+.ag-box.active { box-shadow: 0 0 20px rgba(0,0,0,0.3); }
+.ag-box.done::before { opacity: 0.5; }
+.ag-box.done { border-color: rgba(255,255,255,0.1); }
+.ag-box.error { border-color: var(--danger); }
+.ag-box.error::before { opacity: 1; background: var(--danger); }
+
+/* glow sweep on active */
+.ag-box.active::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent);
+  animation: sweep 2s linear infinite;
+}
+@keyframes sweep { 0%{transform:translateX(-100%);} 100%{transform:translateX(100%);} }
+
+.ag-icon {
+  width: 34px; height: 34px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+  flex-shrink: 0;
+  background: color-mix(in srgb, var(--c) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--c) 25%, transparent);
+  transition: all 0.3s;
+}
+.ag-box.active .ag-icon { box-shadow: 0 0 12px color-mix(in srgb, var(--c) 40%, transparent); }
+
+.ag-info { flex: 1; min-width: 0; }
+.ag-name { font-size: 13px; font-weight: 700; margin-bottom: 2px; color: var(--text); }
+.ag-status { font-family: var(--mono); font-size: 10px; color: var(--text3); display: flex; align-items: center; gap: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ag-box.active .ag-status { color: var(--c); }
+.ag-box.done .ag-status { color: var(--text3); }
+
+.ag-badge {
+  font-family: var(--mono);
+  font-size: 9px;
+  padding: 2px 7px;
+  border-radius: 20px;
+  background: var(--surface3);
+  color: var(--text3);
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  transition: all 0.3s;
+}
+.ag-box.done .ag-badge { background: color-mix(in srgb, var(--c) 12%, transparent); color: var(--c); border-color: color-mix(in srgb, var(--c) 25%, transparent); }
+
+/* connector arrow */
+.ag-arrow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  width: 100%;
+  max-width: 320px;
+  position: relative;
+}
+
+.arrow-line {
+  width: 2px;
+  height: 18px;
+  background: var(--border2);
+  border-radius: 1px;
+  position: relative;
+  overflow: hidden;
+  transition: background 0.3s;
+}
+
+/* animated fill traveling down the arrow when active */
+.arrow-line::after {
+  content: '';
+  position: absolute;
+  top: -100%;
+  left: 0; right: 0;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 1px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.arrow-line.flowing::after {
+  opacity: 1;
+  animation: flow-down 0.8s linear infinite;
+}
+.arrow-line.backward::after {
+  background: var(--c-patcher);
+  animation: flow-up 0.8s linear infinite;
+}
+
+@keyframes flow-down {
+  0%   { top: -100%; }
+  100% { top: 100%; }
+}
+@keyframes flow-up {
+  0%   { top: 100%; }
+  100% { top: -100%; }
+}
+
+.arrow-head {
+  width: 0; height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 7px solid var(--border2);
+  transition: border-top-color 0.3s;
+}
+.arrow-line.flowing ~ .arrow-head { border-top-color: var(--accent); }
+.arrow-line.backward ~ .arrow-head { display: none; }
+.arrow-backward-head {
+  display: none;
+  width: 0; height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 7px solid var(--border2);
+  margin-bottom: 0;
+  transition: border-bottom-color 0.3s;
+}
+.arrow-line.backward + .arrow-head { display: none; }
+
+/* backward arrow — goes up from patcher back to QA area */
+.ag-arrow.backward {
+  flex-direction: column-reverse;
+}
+.ag-arrow.backward .arrow-head {
+  border-top: none;
+  border-bottom: 7px solid var(--border2);
+}
+.ag-arrow.backward .arrow-line.flowing ~ .arrow-head {
+  border-bottom-color: var(--c-patcher);
+}
+
+/* ── LOG ── */
+.log-wrap {
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+  height: 130px;
+  display: flex;
+  flex-direction: column;
+}
+.log-head {
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+}
+.log-entries {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 16px 8px;
+  font-family: var(--mono);
+  font-size: 10px;
+  line-height: 1.7;
+}
+.le { display: flex; gap: 8px; align-items: baseline; padding: 1px 0; }
+.le-time { color: var(--text3); flex-shrink: 0; }
+.le-tag { flex-shrink: 0; font-weight: 500; }
+.le-msg { color: var(--text2); }
+.le.ok .le-msg { color: var(--accent); }
+.le.fail .le-msg { color: var(--danger); }
+.le.patch .le-msg { color: var(--c-patcher); }
+.le.warn .le-msg { color: var(--accent3); }
+
+/* ── RIGHT PANEL ── */
+.right-panel {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+/* ── TABS ── */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  padding: 0 20px;
+  overflow-x: auto;
+  flex-shrink: 0;
+  background: var(--surface);
+  gap: 2px;
+}
+.tabs::-webkit-scrollbar { height: 0; }
+
+.tab {
+  padding: 13px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text3);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--body);
+}
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tbadge {
+  background: var(--surface3);
+  border-radius: 10px;
+  padding: 1px 6px;
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text3);
+}
+.tab.active .tbadge { background: var(--accent-dim); color: var(--accent); }
+
+.tab-content { flex: 1; overflow-y: auto; padding: 24px; display: none; }
+.tab-content.active { display: block; }
+
+/* ── EMPTY STATE ── */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  gap: 12px;
+  color: var(--text3);
+  text-align: center;
+}
+.empty-icon { font-size: 44px; opacity: 0.25; }
+.empty-title { font-size: 15px; font-weight: 700; color: var(--text2); opacity: 0.5; font-family: var(--display); }
+.empty-sub { font-size: 12px; max-width: 260px; line-height: 1.6; }
+
+/* ── CARDS ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+.card-header {
+  padding: 13px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+.card-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.card-title { font-weight: 700; font-size: 13px; flex: 1; }
+.card-meta { font-family: var(--mono); font-size: 10px; color: var(--text3); }
+.card-body { border-top: 1px solid var(--border); padding: 16px; display: none; }
+.card-body.open { display: block; }
+
+/* ── GRID STATS ── */
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; margin-bottom: 16px; }
+.stat-card { background: var(--surface2); border-radius: 8px; padding: 12px; }
+.stat-label { font-family: var(--mono); font-size: 9px; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+.stat-val { font-size: 22px; font-weight: 800; color: var(--accent); font-family: var(--display); }
+.stat-val.ok { color: var(--accent); }
+.stat-val.warn { color: var(--accent3); }
+.stat-val.bad { color: var(--danger); }
+
+/* ── USER STORIES ── */
+.story { background: var(--surface2); border-radius: 8px; padding: 13px; margin-bottom: 8px; }
+.story-head { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+.story-id { font-family: var(--mono); font-size: 9px; background: var(--accent-dim); color: var(--accent); padding: 2px 7px; border-radius: 4px; border: 1px solid rgba(79,255,176,0.2); }
+.story-title { font-size: 13px; font-weight: 600; line-height: 1.4; }
+.ac { font-size: 11px; color: var(--text2); display: flex; align-items: flex-start; gap: 5px; margin-bottom: 3px; }
+.ac::before { content: '✓'; color: var(--accent); flex-shrink: 0; margin-top: 1px; font-size: 10px; }
+
+/* ── TICKETS ── */
+.ticket { display: flex; align-items: center; gap: 10px; padding: 9px 12px; background: var(--surface2); border-radius: 8px; margin-bottom: 5px; font-size: 12px; }
+.t-id { font-family: var(--mono); font-size: 9px; color: var(--text3); width: 48px; flex-shrink: 0; }
+.t-title { flex: 1; }
+.t-pts { font-family: var(--mono); font-size: 10px; background: var(--surface3); padding: 2px 7px; border-radius: 10px; color: var(--text3); }
+.pri-high { border-left: 2px solid var(--danger); }
+.pri-medium { border-left: 2px solid var(--accent3); }
+.pri-low { border-left: 2px solid var(--text3); }
+
+/* ── SPRINT ── */
+.sprint { background: var(--surface2); border-radius: 8px; padding: 13px; margin-bottom: 8px; }
+.sprint-head { font-weight: 700; font-size: 12px; margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+.sprint-pts { font-family: var(--mono); font-size: 10px; color: var(--text3); background: var(--surface3); padding: 2px 8px; border-radius: 10px; }
+.sprint-goal { font-size: 11px; color: var(--text2); margin-bottom: 8px; }
+.sprint-tix { display: flex; flex-wrap: wrap; gap: 5px; }
+.sprint-chip { font-family: var(--mono); font-size: 10px; padding: 2px 8px; background: var(--surface3); border-radius: 4px; color: var(--text3); }
+
+/* ── FILE BROWSER ── */
+.file-list { display: flex; flex-direction: column; gap: 3px; margin-bottom: 14px; }
+.file-item { display: flex; align-items: center; gap: 9px; padding: 9px 12px; background: var(--surface2); border-radius: 8px; cursor: pointer; transition: background 0.15s; }
+.file-item:hover { background: var(--surface3); }
+.file-item.active { background: var(--accent-dim); border: 1px solid rgba(79,255,176,0.2); }
+.file-icon { font-size: 13px; flex-shrink: 0; }
+.file-name { flex: 1; font-family: var(--mono); font-size: 11px; }
+.file-lines { font-family: var(--mono); font-size: 10px; color: var(--text3); }
+.code-viewer { background: var(--surface2); border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
+.code-viewer-head { padding: 9px 14px; border-bottom: 1px solid var(--border); font-family: var(--mono); font-size: 10px; color: var(--text3); display: flex; justify-content: space-between; align-items: center; }
+.copy-btn { cursor: pointer; color: var(--accent); background: none; border: none; font-family: var(--mono); font-size: 10px; }
+.copy-btn:hover { text-decoration: underline; }
+pre { padding: 14px; overflow-x: auto; font-family: var(--mono); font-size: 11px; line-height: 1.7; color: #c8c8d8; max-height: 380px; overflow-y: auto; }
+
+/* ── QA ── */
+.qa-hero { display: flex; align-items: center; gap: 16px; padding: 18px; background: var(--surface2); border-radius: 10px; margin-bottom: 14px; }
+.qa-verdict { font-size: 38px; font-weight: 800; font-family: var(--display); }
+.qa-pass { color: var(--accent); }
+.qa-fail { color: var(--danger); }
+.qa-stats { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--text2); }
+.qa-stats strong { color: var(--text); }
+.rec { padding: 9px 13px; background: rgba(251,191,36,0.07); border: 1px solid rgba(251,191,36,0.18); border-radius: 8px; font-size: 12px; margin-bottom: 5px; display: flex; gap: 7px; }
+.rec::before { content: '→'; color: var(--accent3); flex-shrink: 0; }
+
+/* ── PATCHER ── */
+.patch-attempt {
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+.patch-attempt.success { border-color: rgba(52,211,153,0.3); background: rgba(52,211,153,0.04); }
+.patch-attempt.failure { border-color: rgba(255,85,114,0.25); background: rgba(255,85,114,0.03); }
+.patch-head { padding: 12px 14px; display: flex; align-items: center; gap: 10px; }
+.patch-num { font-family: var(--mono); font-size: 9px; padding: 2px 8px; border-radius: 20px; background: rgba(251,146,60,0.15); color: var(--c-patcher); border: 1px solid rgba(251,146,60,0.25); }
+.patch-result { font-size: 13px; font-weight: 700; flex: 1; }
+.patch-conf { font-family: var(--mono); font-size: 10px; color: var(--text3); }
+.patch-body { padding: 0 14px 13px; font-size: 12px; color: var(--text2); line-height: 1.5; }
+.patch-files { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+.patch-file { font-family: var(--mono); font-size: 10px; padding: 2px 8px; background: var(--surface3); border-radius: 4px; color: var(--text3); }
+
+/* ── GIT ── */
+.commit { display: flex; align-items: flex-start; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--border); }
+.commit:last-child { border-bottom: none; }
+.commit-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--c-git); margin-top: 3px; flex-shrink: 0; box-shadow: 0 0 8px var(--c-git); }
+.commit-msg { font-size: 13px; font-weight: 600; }
+.commit-meta { font-family: var(--mono); font-size: 10px; color: var(--text3); margin-top: 2px; }
+.git-log-line { font-family: var(--mono); font-size: 11px; padding: 3px 0; color: var(--text3); display: flex; gap: 10px; }
+.git-hash { color: var(--c-git); }
+
+/* ── GITHUB ── */
+.gh-link { display: block; padding: 11px 14px; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); text-decoration: none; font-size: 13px; font-weight: 600; transition: border-color 0.2s, background 0.2s; margin-bottom: 7px; display: flex; align-items: center; justify-content: space-between; }
+.gh-link:hover { border-color: var(--c-github); background: rgba(192,132,252,0.06); }
+.gh-pr-badge { font-family: var(--mono); font-size: 10px; padding: 2px 9px; background: rgba(192,132,252,0.12); color: var(--c-github); border-radius: 20px; border: 1px solid rgba(192,132,252,0.25); }
+
+/* ── DEVOPS ── */
+.cmd { background: var(--surface2); border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; }
+.cmd-label { font-family: var(--mono); font-size: 9px; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 5px; }
+.cmd-val { font-family: var(--mono); font-size: 12px; color: var(--accent); }
+
+/* ── OVERVIEW ── */
+.overview-hero { display: flex; align-items: center; gap: 20px; padding: 20px; background: var(--surface2); border-radius: 12px; margin-bottom: 18px; }
+.overview-status { font-size: 40px; font-family: var(--display); font-weight: 800; }
+.pipeline-progress { display: flex; gap: 3px; margin-bottom: 18px; }
+.prog-seg { height: 5px; border-radius: 3px; flex: 1; background: var(--border2); transition: background 0.4s, box-shadow 0.4s; }
+.prog-seg.ok { background: var(--accent); box-shadow: 0 0 8px rgba(79,255,176,0.4); }
+.prog-seg.fail { background: var(--danger); }
+.prog-seg.active { background: var(--accent3); animation: blink 1s infinite; }
+.prog-seg.patch { background: var(--c-patcher); }
+@keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+/* ── SPINNER ── */
+.spin { width: 12px; height: 12px; border: 2px solid currentColor; border-top-color: transparent; border-radius: 50%; animation: rotate 0.7s linear infinite; display: inline-block; }
+@keyframes rotate { to { transform: rotate(360deg); } }
+
+::-webkit-scrollbar { width: 3px; height: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-gem">A</div>
+    <div class="logo-name">Agentic <em>SDLC</em></div>
+  </div>
+  <div class="header-right">
+    <div class="status-pill">
+      <div class="status-dot" id="statusDot"></div>
+      <span id="statusText">Ready</span>
+    </div>
+  </div>
+</header>
+
+<div class="app">
+
+  <!-- LEFT PANEL -->
+  <div class="left-panel">
+
+    <div class="input-wrap">
+      <div class="label">Project Description</div>
+      <textarea id="projectInput" placeholder="Describe your project in plain English…&#10;&#10;e.g. Build a task management REST API with user auth, JWT tokens, and CRUD operations." rows="4"></textarea>
+      <div class="chips">
+        <div class="chip" onclick="setEx('Build a task management REST API with user auth and JWT')">Task API</div>
+        <div class="chip" onclick="setEx('Build a blog platform with posts, comments and user profiles')">Blog</div>
+        <div class="chip" onclick="setEx('Build an e-commerce product catalog API with search and filters')">E-commerce</div>
+        <div class="chip" onclick="setEx('Build a real-time chat API with rooms and message history')">Chat API</div>
+      </div>
+      <button class="run-btn" id="runBtn" onclick="startPipeline()">
+        <span id="runIcon">▶</span>
+        <span id="runText">Run Pipeline</span>
+      </button>
+    </div>
+
+    <!-- Clarification panel -->
+    <div class="clarify-panel" id="clarifyPanel">
+      <div class="clarify-header">
+        <div class="clarify-icon">⚠</div>
+        <div class="clarify-title-text">
+          <strong>Clarification needed</strong>
+          <span id="clarifyScore">Input is too vague to proceed</span>
+        </div>
+      </div>
+      <div class="clarify-body" id="clarifyBody"></div>
+      <div class="clarify-footer">
+        <button class="clarify-submit" onclick="submitClarification()">Submit answers &amp; run →</button>
+      </div>
+    </div>
+
+    <!-- Pipeline diagram -->
+    <div class="pipeline-wrap">
+      <div class="pipeline-scroll" id="pipelineScroll">
+
+        <div class="ag-box" id="ag-ba" style="--c: var(--c-ba)">
+          <div class="ag-icon">🧠</div>
+          <div class="ag-info">
+            <div class="ag-name">Business Analyst</div>
+            <div class="ag-status" id="st-ba">Waiting</div>
+          </div>
+          <div class="ag-badge" id="badge-ba">—</div>
+        </div>
+
+        <div class="ag-arrow" id="arrow-ba-scrum">
+          <div class="arrow-line" id="al-ba-scrum"></div>
+          <div class="arrow-head"></div>
+        </div>
+
+        <div class="ag-box" id="ag-scrum" style="--c: var(--c-scrum)">
+          <div class="ag-icon">📋</div>
+          <div class="ag-info">
+            <div class="ag-name">Scrum Master</div>
+            <div class="ag-status" id="st-scrum">Waiting</div>
+          </div>
+          <div class="ag-badge" id="badge-scrum">—</div>
+        </div>
+
+        <div class="ag-arrow" id="arrow-scrum-dev">
+          <div class="arrow-line" id="al-scrum-dev"></div>
+          <div class="arrow-head"></div>
+        </div>
+
+        <div class="ag-box" id="ag-dev" style="--c: var(--c-dev)">
+          <div class="ag-icon">💻</div>
+          <div class="ag-info">
+            <div class="ag-name">Developer</div>
+            <div class="ag-status" id="st-dev">Waiting</div>
+          </div>
+          <div class="ag-badge" id="badge-dev">—</div>
+        </div>
+
+        <div class="ag-arrow" id="arrow-dev-qa">
+          <div class="arrow-line" id="al-dev-qa"></div>
+          <div class="arrow-head"></div>
+        </div>
+
+        <div class="ag-box" id="ag-qa" style="--c: var(--c-qa)">
+          <div class="ag-icon">🧪</div>
+          <div class="ag-info">
+            <div class="ag-name">QA Engineer</div>
+            <div class="ag-status" id="st-qa">Waiting</div>
+          </div>
+          <div class="ag-badge" id="badge-qa">—</div>
+        </div>
+
+        <!-- Backward patcher row: sits beside QA↔Dev, shows when healing -->
+        <div class="ag-arrow" id="arrow-qa-patcher" style="display:none">
+          <div class="arrow-line backward" id="al-qa-patcher"></div>
+          <div class="arrow-head"></div>
+        </div>
+
+        <div class="ag-box" id="ag-patcher" style="--c: var(--c-patcher); display:none;">
+          <div class="ag-icon">🔧</div>
+          <div class="ag-info">
+            <div class="ag-name">Self-Healer</div>
+            <div class="ag-status" id="st-patcher">Standby</div>
+          </div>
+          <div class="ag-badge" id="badge-patcher">—</div>
+        </div>
+
+        <div class="ag-arrow" id="arrow-patcher-qa" style="display:none">
+          <div class="arrow-line flowing backward" id="al-patcher-qa"></div>
+          <div class="arrow-head"></div>
+        </div>
+
+        <div class="ag-arrow" id="arrow-qa-git">
+          <div class="arrow-line" id="al-qa-git"></div>
+          <div class="arrow-head"></div>
+        </div>
+
+        <div class="ag-box" id="ag-git" style="--c: var(--c-git)">
+          <div class="ag-icon">🔀</div>
+          <div class="ag-info">
+            <div class="ag-name">Git Agent</div>
+            <div class="ag-status" id="st-git">Waiting</div>
+          </div>
+          <div class="ag-badge" id="badge-git">—</div>
+        </div>
+
+        <div class="ag-arrow">
+          <div class="arrow-line" id="al-git-github"></div>
+          <div class="arrow-head"></div>
+        </div>
+
+        <div class="ag-box" id="ag-github" style="--c: var(--c-github)">
+          <div class="ag-icon">⬆</div>
+          <div class="ag-info">
+            <div class="ag-name">GitHub Push</div>
+            <div class="ag-status" id="st-github">Waiting</div>
+          </div>
+          <div class="ag-badge" id="badge-github">—</div>
+        </div>
+
+        <div class="ag-arrow">
+          <div class="arrow-line" id="al-github-devops"></div>
+          <div class="arrow-head"></div>
+        </div>
+
+        <div class="ag-box" id="ag-devops" style="--c: var(--c-devops)">
+          <div class="ag-icon">🚀</div>
+          <div class="ag-info">
+            <div class="ag-name">DevOps</div>
+            <div class="ag-status" id="st-devops">Waiting</div>
+          </div>
+          <div class="ag-badge" id="badge-devops">—</div>
+        </div>
+
+        <div style="height:16px;flex-shrink:0"></div>
+      </div>
+
+      <!-- Log at bottom -->
+      <div class="log-wrap">
+        <div class="log-head">
+          <span class="label" style="margin-bottom:0;font-size:9px">Live Log</span>
+          <button onclick="clearLog()" style="background:none;border:none;color:var(--text3);font-size:10px;cursor:pointer;font-family:var(--mono)">clear</button>
+        </div>
+        <div class="log-entries" id="logEntries">
+          <div class="le"><span class="le-time">--:--:--</span><span class="le-msg">Platform ready.</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+
+    <div class="tabs">
+      <div class="tab active" onclick="showTab('overview')" id="tab-overview">Overview</div>
+      <div class="tab" onclick="showTab('ba')" id="tab-ba">📋 BA <span class="tbadge" id="tbadge-ba">—</span></div>
+      <div class="tab" onclick="showTab('scrum')" id="tab-scrum">🗂 Scrum <span class="tbadge" id="tbadge-scrum">—</span></div>
+      <div class="tab" onclick="showTab('code')" id="tab-code">💻 Code <span class="tbadge" id="tbadge-code">—</span></div>
+      <div class="tab" onclick="showTab('patches')" id="tab-patches">🔧 Patches <span class="tbadge" id="tbadge-patches">—</span></div>
+      <div class="tab" onclick="showTab('qa')" id="tab-qa">🧪 QA <span class="tbadge" id="tbadge-qa">—</span></div>
+      <div class="tab" onclick="showTab('git')" id="tab-git">🔀 Git <span class="tbadge" id="tbadge-git">—</span></div>
+      <div class="tab" onclick="showTab('github')" id="tab-github">⬆ GitHub <span class="tbadge" id="tbadge-github">—</span></div>
+      <div class="tab" onclick="showTab('devops')" id="tab-devops">🚀 DevOps <span class="tbadge" id="tbadge-devops">—</span></div>
+    </div>
+
+    <!-- OVERVIEW -->
+    <div class="tab-content active" id="content-overview">
+      <div id="overviewEmpty" class="empty" style="height:100%">
+        <div class="empty-icon">⚡</div>
+        <div class="empty-title">Ready to build</div>
+        <div class="empty-sub">Enter a project description and hit Run Pipeline.</div>
+      </div>
+      <div id="overviewContent" style="display:none">
+        <div class="overview-hero">
+          <div id="ovStatus" class="overview-status">—</div>
+          <div style="flex:1">
+            <div id="ovProject" style="font-size:14px;font-weight:700;margin-bottom:3px"></div>
+            <div id="ovSub" style="font-size:12px;color:var(--text3)"></div>
+          </div>
+          <div style="text-align:right">
+            <div id="ovDur" style="font-family:var(--mono);font-size:22px;font-weight:700;color:var(--accent)">—</div>
+            <div style="font-size:10px;color:var(--text3)">seconds</div>
+          </div>
+        </div>
+        <div class="pipeline-progress" id="progBar">
+          <div class="prog-seg" id="prog-ba"></div>
+          <div class="prog-seg" id="prog-scrum"></div>
+          <div class="prog-seg" id="prog-dev"></div>
+          <div class="prog-seg" id="prog-patcher"></div>
+          <div class="prog-seg" id="prog-qa"></div>
+          <div class="prog-seg" id="prog-git"></div>
+          <div class="prog-seg" id="prog-github"></div>
+          <div class="prog-seg" id="prog-devops"></div>
+        </div>
+        <div class="stat-grid" id="ovStats"></div>
+      </div>
+    </div>
+
+    <!-- BA -->
+    <div class="tab-content" id="content-ba">
+      <div class="empty" id="emptyba" style="height:100%"><div class="empty-icon">🧠</div><div class="empty-title">BA Spec</div><div class="empty-sub">Requirements will be parsed into user stories and acceptance criteria.</div></div>
+      <div id="bodyba" style="display:none"></div>
+    </div>
+
+    <!-- SCRUM -->
+    <div class="tab-content" id="content-scrum">
+      <div class="empty" id="emptyscrum" style="height:100%"><div class="empty-icon">📋</div><div class="empty-title">Sprint Plan</div><div class="empty-sub">Epics, tickets, and sprint plans will appear here.</div></div>
+      <div id="bodyscrum" style="display:none"></div>
+    </div>
+
+    <!-- CODE -->
+    <div class="tab-content" id="content-code">
+      <div class="empty" id="emptycode" style="height:100%"><div class="empty-icon">💻</div><div class="empty-title">Generated Code</div><div class="empty-sub">A complete FastAPI application will be written here.</div></div>
+      <div id="bodycode" style="display:none">
+        <div id="fileList" class="file-list" style="margin-bottom:14px"></div>
+        <div class="code-viewer" id="codeViewer" style="display:none">
+          <div class="code-viewer-head"><span id="viewingFile">—</span><button class="copy-btn" onclick="copyCode()">Copy</button></div>
+          <pre id="codePreview"></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- PATCHES -->
+    <div class="tab-content" id="content-patches">
+      <div class="empty" id="emptypatches" style="height:100%"><div class="empty-icon">🔧</div><div class="empty-title">Self-Healing Patches</div><div class="empty-sub">When QA fails, the Self-Healer makes surgical fixes instead of full rewrites. Each attempt is logged here.</div></div>
+      <div id="bodypatches" style="display:none"></div>
+    </div>
+
+    <!-- QA -->
+    <div class="tab-content" id="content-qa">
+      <div class="empty" id="emptyqa" style="height:100%"><div class="empty-icon">🧪</div><div class="empty-title">QA Report</div><div class="empty-sub">pytest results will appear here after the QA agent runs.</div></div>
+      <div id="bodyqa" style="display:none"></div>
+    </div>
+
+    <!-- GIT -->
+    <div class="tab-content" id="content-git">
+      <div class="empty" id="emptygit" style="height:100%"><div class="empty-icon">🔀</div><div class="empty-title">Git Repository</div><div class="empty-sub">Commits, tags, and the git log will appear here.</div></div>
+      <div id="bodygit" style="display:none"></div>
+    </div>
+
+    <!-- GITHUB -->
+    <div class="tab-content" id="content-github">
+      <div class="empty" id="emptygithub" style="height:100%"><div class="empty-icon">⬆</div><div class="empty-title">GitHub Push</div><div class="empty-sub">Branch and Pull Request links will appear here.</div></div>
+      <div id="bodygithub" style="display:none"></div>
+    </div>
+
+    <!-- DEVOPS -->
+    <div class="tab-content" id="content-devops">
+      <div class="empty" id="emptydevops" style="height:100%"><div class="empty-icon">🚀</div><div class="empty-title">Deployment Package</div><div class="empty-sub">Dockerfile, docker-compose, and run commands will appear here.</div></div>
+      <div id="bodydevops" style="display:none"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const API = 'http://localhost:8000';
+let running = false, codeFiles = [], activeFile = null;
+let pendingInput = '', clarifyQs = [], clarifyAns = {}, patchCount = 0;
+
+// ── UTILS ──────────────────────────────────────────────────────────────────────
+const now = () => new Date().toLocaleTimeString('en', { hour12: false });
+
+function log(msg, type = '', agent = null) {
+  const el = document.getElementById('logEntries');
+  const row = document.createElement('div');
+  row.className = `le ${type}`;
+  const agColor = { ba:'c-ba', scrum:'c-scrum', developer:'c-dev', patcher:'c-patcher', qa:'c-qa', git:'c-git', github:'c-github', devops:'c-devops' };
+  const tagHtml = agent ? `<span class="le-tag" style="color:var(--${agColor[agent]||'accent'})">[${agent}]</span>` : '';
+  row.innerHTML = `<span class="le-time">${now()}</span>${tagHtml}<span class="le-msg">${msg}</span>`;
+  el.appendChild(row);
+  el.scrollTop = el.scrollHeight;
+}
+
+function clearLog() { document.getElementById('logEntries').innerHTML = ''; }
+
+function setEx(t) { document.getElementById('projectInput').value = t; }
+
+function showTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  document.getElementById('content-' + name).classList.add('active');
+}
+
+// ── AGENT STATE ────────────────────────────────────────────────────────────────
+const agMap = { developer: 'dev', ba: 'ba', scrum: 'scrum', qa: 'qa', git: 'git', github: 'github', devops: 'devops', patcher: 'patcher' };
+
+function setAgent(agent, state, msg) {
+  const k = agMap[agent] || agent;
+  const box = document.getElementById('ag-' + k);
+  const st  = document.getElementById('st-' + k);
+  if (!box) return;
+
+  // Show patcher box when it becomes relevant
+  if (k === 'patcher' && state !== 'idle') {
+    box.style.display = 'flex';
+    document.getElementById('arrow-qa-patcher').style.display = 'flex';
+    document.getElementById('arrow-patcher-qa').style.display = 'flex';
+  }
+
+  box.className = `ag-box ${state}`;
+  box.style.setProperty('--c', `var(--c-${k})`);
+
+  if (state === 'active') {
+    st.innerHTML = `<span class="spin"></span> ${msg || 'Running…'}`;
+    // flow the arrow leading INTO this box
+    flowArrowTo(k);
+  } else {
+    st.textContent = msg || (state === 'done' ? 'Complete ✓' : state === 'error' ? 'Failed ✗' : 'Waiting');
+    if (state === 'done') solidifyArrowTo(k);
+  }
+
+  // Progress bar
+  const prog = document.getElementById('prog-' + k);
+  if (prog) {
+    if (state === 'done') { prog.className = 'prog-seg ' + (k === 'patcher' ? 'patch' : 'ok'); }
+    else if (state === 'active') prog.className = 'prog-seg active';
+    else if (state === 'error') prog.className = 'prog-seg fail';
+  }
+}
+
+function setBadge(agent, val) {
+  const k = agMap[agent] || agent;
+  const b = document.getElementById('badge-' + k);
+  const tb = document.getElementById('tbadge-' + (k === 'dev' ? 'code' : k === 'patcher' ? 'patches' : k));
+  if (b) b.textContent = val;
+  if (tb) tb.textContent = val;
+}
+
+// Arrow flow helpers
+const arrowMap = {
+  ba:     'al-ba-scrum',
+  scrum:  'al-scrum-dev',
+  dev:    'al-dev-qa',
+  qa:     'al-qa-git',
+  git:    'al-git-github',
+  github: 'al-github-devops',
+};
+const backArrow = { patcher: 'al-patcher-qa', qa_after_patch: 'al-qa-patcher' };
+
+function flowArrowTo(k) {
+  if (k === 'patcher') {
+    const el = document.getElementById('al-qa-patcher');
+    if (el) { el.className = 'arrow-line backward flowing'; }
+    return;
+  }
+  // Find the arrow that leads into k
+  const prev = { scrum:'ba', dev:'scrum', qa:'dev', git:'qa', github:'git', devops:'github' };
+  if (prev[k]) {
+    const alId = arrowMap[prev[k]];
+    const el = document.getElementById(alId);
+    if (el) el.className = 'arrow-line flowing';
+  }
+  // Also flow back-to-qa arrow when patcher done
+  if (k === 'qa' && document.getElementById('ag-patcher').style.display !== 'none') {
+    const el = document.getElementById('al-patcher-qa');
+    if (el) { el.className = 'arrow-line flowing'; }
+  }
+}
+
+function solidifyArrowTo(k) {
+  const prev = { scrum:'ba', dev:'scrum', qa:'dev', git:'qa', github:'git', devops:'github' };
+  if (prev[k]) {
+    const el = document.getElementById(arrowMap[prev[k]]);
+    if (el) el.className = 'arrow-line';
+  }
+}
+
+// ── PIPELINE ───────────────────────────────────────────────────────────────────
+async function startPipeline() {
+  const input = document.getElementById('projectInput').value.trim();
+  if (!input) { alert('Enter a project description first.'); return; }
+  if (running) return;
+
+  pendingInput = input;
+  running = true;
+  resetUI();
+  hideClarify();
+  setRunning(true);
+  log(`Starting: "${input.slice(0,55)}…"`, 'ok');
+
+  await doStream(`${API}/run/stream`, { project_input: input });
+}
+
+async function doStream(url, body) {
+  const t0 = Date.now();
+  try {
+    const resp = await fetch(url, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+    });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+    const reader = resp.body.getReader(), dec = new TextDecoder();
+    let buf = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      const lines = buf.split('\n'); buf = lines.pop();
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          try { onEvent(JSON.parse(line.slice(6)), t0); } catch(e) {}
+        }
+      }
+    }
+  } catch(e) {
+    log(`Error: ${e.message}`, 'fail');
+  }
+  if (!document.getElementById('clarifyPanel').classList.contains('open')) {
+    setRunning(false);
+  }
+}
+
+function setRunning(on) {
+  running = on;
+  const btn = document.getElementById('runBtn');
+  const dot = document.getElementById('statusDot');
+  if (on) {
+    btn.disabled = true; btn.classList.add('running');
+    document.getElementById('runIcon').innerHTML = '<span class="spin"></span>';
+    document.getElementById('runText').textContent = 'Pipeline running…';
+    dot.className = 'status-dot busy';
+    document.getElementById('statusText').textContent = 'Running';
+  } else {
+    btn.disabled = false; btn.classList.remove('running');
+    document.getElementById('runIcon').textContent = '▶';
+    document.getElementById('runText').textContent = 'Run Pipeline';
+    dot.className = 'status-dot';
+    document.getElementById('statusText').textContent = 'Ready';
+  }
+}
+
+// ── EVENT HANDLER ──────────────────────────────────────────────────────────────
+function onEvent(ev, t0) {
+  const elapsed = ((Date.now() - t0)/1000).toFixed(1);
+  switch(ev.type) {
+    case 'pipeline_start': log('Pipeline started', 'ok'); break;
+
+    case 'awaiting_clarification':
+      setRunning(false);
+      document.getElementById('statusDot').className = 'status-dot warn';
+      document.getElementById('statusText').textContent = 'Needs input';
+      log('⚠ Input vague — please answer the questions', 'warn');
+      showClarify(ev.questions || [], ev.clarity_score);
+      break;
+
+    case 'orchestrator':
+      log(`→ ${ev.next_agent}: ${ev.reasoning}`, '', null);
+      if (ev.next_agent && ev.next_agent !== 'done') setAgent(ev.next_agent, 'active');
+      break;
+
+    case 'agent_done': onAgentDone(ev); break;
+    case 'pipeline_done': onPipelineDone(ev, elapsed); break;
+    case 'error': log(`Error: ${ev.message}`, 'fail'); break;
+  }
+}
+
+function onAgentDone({ agent, artifact_type, status, detail }) {
+  const ok = status === 'ok';
+  setAgent(agent, ok ? 'done' : 'error', ok ? 'Complete ✓' : 'Failed ✗');
+  log(`${artifact_type} → ${status}`, ok ? 'ok' : 'fail', agent);
+
+  switch(agent) {
+    case 'ba':        renderBA(detail);     setBadge('ba', `${detail.user_stories?.length||0} stories`); break;
+    case 'scrum':     renderScrum(detail);  setBadge('scrum', `${detail.tickets?.length||0} tickets`); break;
+    case 'developer': renderCode(detail);   setBadge('dev', `${detail.files?.length||0} files`); break;
+    case 'patcher':   renderPatch(detail, status); break;
+    case 'qa':        renderQA(detail); { const p=detail.tests_passed||0,t=detail.tests_run||0; setBadge('qa', t>0?`${p}/${t}`:detail.collection_failed?'err':'—'); } break;
+    case 'git':       renderGit(detail);    setBadge('git', detail.tag||'v0.1.0'); break;
+    case 'github':    renderGitHub(detail); setBadge('github', detail.pr_number?`PR #${detail.pr_number}`:'pushed'); break;
+    case 'devops':    renderDevOps(detail); setBadge('devops', detail.status||'—'); break;
+  }
+}
+
+function onPipelineDone(ev, elapsed) {
+  const dur = ev.duration_seconds || elapsed;
+  document.getElementById('ovDur').textContent = dur + 's';
+  const ok = !ev.errors?.length;
+  document.getElementById('ovStatus').textContent = ok ? '✅' : '❌';
+  document.getElementById('ovSub').textContent = ok ? 'All agents completed' : 'Completed with errors';
+  log(`Pipeline ${ok?'complete':'finished with errors'} in ${dur}s`, ok?'ok':'fail');
+  document.getElementById('ovStats').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Code Files</div><div class="stat-val">${codeFiles.length}</div></div>
+    <div class="stat-card"><div class="stat-label">Patches</div><div class="stat-val ${patchCount>0?'warn':''}">${patchCount}</div></div>
+    <div class="stat-card"><div class="stat-label">Duration</div><div class="stat-val">${dur}s</div></div>
+    <div class="stat-card"><div class="stat-label">Errors</div><div class="stat-val ${ev.errors?.length?'bad':'ok'}">${ev.errors?.length||0}</div></div>
+  `;
+}
+
+// ── CLARIFICATION ──────────────────────────────────────────────────────────────
+function showClarify(qs, score) {
+  clarifyQs = qs; clarifyAns = {};
+  document.getElementById('clarifyScore').textContent = score ? `Clarity score: ${score}/100` : 'More details needed';
+  document.getElementById('clarifyBody').innerHTML = qs.map((q, i) => `
+    <div class="cq">
+      <div class="cq-top">
+        <div class="cq-num">Question ${i+1}</div>
+        <div class="cq-q">${q.question}</div>
+        <div class="cq-why">💡 ${q.why_it_matters}</div>
+      </div>
+      <div class="cq-chips">
+        ${(q.example_answers||[]).map(a => `<div class="cq-chip" onclick="pickAns('${q.id}','${a.replace(/'/g,"\\'")}',this)">${a}</div>`).join('')}
+      </div>
+      <input class="cq-input" id="cq-${q.id}" placeholder="Or type your own…" oninput="clarifyAns['${q.id}']=this.value"/>
+    </div>
+  `).join('');
+  document.getElementById('clarifyPanel').classList.add('open');
+}
+
+function hideClarify() { document.getElementById('clarifyPanel').classList.remove('open'); }
+
+function pickAns(qId, ans, el) {
+  clarifyAns[qId] = ans;
+  el.closest('.cq-chips').querySelectorAll('.cq-chip').forEach(c => c.classList.remove('sel'));
+  el.classList.add('sel');
+  const inp = document.getElementById('cq-' + qId);
+  if (inp) inp.value = ans;
+}
+
+async function submitClarification() {
+  const answers = {};
+  clarifyQs.forEach(q => {
+    const v = clarifyAns[q.id] || document.getElementById('cq-'+q.id)?.value || '';
+    if (v.trim()) answers[q.id] = v.trim();
+  });
+  if (!Object.keys(answers).length) { alert('Please answer at least one question.'); return; }
+  hideClarify();
+  setRunning(true);
+  log('Submitting answers and resuming…', 'ok');
+  await doStream(`${API}/clarify/stream`, { project_input: pendingInput, answers });
+}
+
+// ── RENDERERS ──────────────────────────────────────────────────────────────────
+function show(id) {
+  const empty = document.getElementById('empty'+id);
+  const body  = document.getElementById('body'+id);
+  if (empty) empty.style.display = 'none';
+  if (body)  body.style.display  = 'block';
+}
+
+function renderBA(spec) {
+  if (!spec?.user_stories) return;
+  show('ba');
+  document.getElementById('bodyba').innerHTML = `
+    <div style="margin-bottom:18px">
+      <div style="font-size:20px;font-weight:800;font-family:var(--display);margin-bottom:5px">${spec.project_title||'—'}</div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.6">${spec.summary||''}</div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-label">User Stories</div><div class="stat-val">${(spec.user_stories||[]).length}</div></div>
+      <div class="stat-card"><div class="stat-label">Edge Cases</div><div class="stat-val">${(spec.edge_cases||[]).length}</div></div>
+    </div>
+    <div class="label" style="margin-bottom:10px">User Stories</div>
+    ${(spec.user_stories||[]).map(us=>`
+      <div class="story">
+        <div class="story-head"><span class="story-id">${us.id}</span><span class="story-title">As a <em>${us.role}</em>, I want to ${us.goal}</span></div>
+        ${(us.acceptance_criteria||[]).map(c=>`<div class="ac">${c}</div>`).join('')}
+      </div>`).join('')}
+    ${spec.tech_stack_hints?`<div style="margin-top:14px;padding:12px 14px;background:var(--surface2);border-radius:8px;font-size:12px;color:var(--text2)"><div class="label" style="margin-bottom:6px">Tech Stack</div>${Array.isArray(spec.tech_stack_hints)?spec.tech_stack_hints.join(' · '):spec.tech_stack_hints}</div>`:''}
+  `;
+  document.getElementById('ovProject').textContent = spec.project_title || '';
+  document.getElementById('overviewEmpty').style.display = 'none';
+  document.getElementById('overviewContent').style.display = 'block';
+  showTab('ba');
+}
+
+function renderScrum(plan) {
+  if (!plan?.tickets) return;
+  show('scrum');
+  document.getElementById('bodyscrum').innerHTML = `
+    <div class="stat-grid" style="margin-bottom:18px">
+      <div class="stat-card"><div class="stat-label">Tickets</div><div class="stat-val">${(plan.tickets||[]).length}</div></div>
+      <div class="stat-card"><div class="stat-label">Sprints</div><div class="stat-val">${(plan.sprints||[]).length}</div></div>
+    </div>
+    <div class="label" style="margin-bottom:8px">Tickets</div>
+    ${(plan.tickets||[]).map(tk=>`<div class="ticket pri-${tk.priority||'medium'}"><span class="t-id">${tk.id}</span><span class="t-title">${tk.title}</span><span class="t-pts">${tk.story_points}pt</span></div>`).join('')}
+    <div class="label" style="margin:14px 0 8px">Sprint Plan</div>
+    ${(plan.sprints||[]).map(sp=>`<div class="sprint"><div class="sprint-head">Sprint ${sp.sprint_number}<span class="sprint-pts">${sp.total_points||0}pts</span></div><div class="sprint-goal">${sp.goal}</div><div class="sprint-tix">${(sp.ticket_ids||[]).map(id=>`<span class="sprint-chip">${id}</span>`).join('')}</div></div>`).join('')}
+  `;
+  showTab('scrum');
+}
+
+function renderCode(pkg) {
+  if (!pkg?.files) return;
+  show('code');
+  codeFiles = pkg.files || [];
+  const icon = p => p.endsWith('.py')?'🐍':p.includes('test')?'🧪':p.endsWith('.yml')||p.endsWith('.yaml')?'⚙️':'📄';
+  document.getElementById('fileList').innerHTML = codeFiles.map((f,i)=>`
+    <div class="file-item" id="fi-${i}" onclick="viewFile(${i})">
+      <span class="file-icon">${icon(f.path)}</span>
+      <span class="file-name">${f.path}</span>
+      <span class="file-lines">${(f.content||'').split('\n').length}L</span>
+    </div>`).join('');
+  const main = codeFiles.findIndex(f=>f.path==='main.py');
+  viewFile(main>=0?main:0);
+  showTab('code');
+}
+
+function viewFile(idx) {
+  if (!codeFiles[idx]) return;
+  activeFile = idx;
+  document.querySelectorAll('.file-item').forEach((el,i)=>el.classList.toggle('active',i===idx));
+  let c = codeFiles[idx].content||'';
+  if (c.includes('\\n')&&!c.includes('\n')) c=c.replace(/\\n/g,'\n').replace(/\\t/g,'\t');
+  document.getElementById('viewingFile').textContent = codeFiles[idx].path;
+  document.getElementById('codePreview').textContent = c;
+  document.getElementById('codeViewer').style.display = 'block';
+}
+
+function copyCode() {
+  if (activeFile===null||!codeFiles[activeFile]) return;
+  let c=codeFiles[activeFile].content||'';
+  if (c.includes('\\n')&&!c.includes('\n')) c=c.replace(/\\n/g,'\n').replace(/\\t/g,'\t');
+  navigator.clipboard.writeText(c);
+  const btn=document.querySelector('.copy-btn');
+  btn.textContent='Copied!'; setTimeout(()=>btn.textContent='Copy',2000);
+}
+
+function renderPatch(detail, status) {
+  if (!detail) return;
+  patchCount++;
+  show('patches');
+  const ok = status === 'ok';
+  const card = document.createElement('div');
+  card.className = `patch-attempt ${ok?'success':'failure'}`;
+  card.innerHTML = `
+    <div class="patch-head">
+      <span style="font-size:18px">${ok?'✅':'❌'}</span>
+      <span class="patch-num">Attempt #${detail.attempt||patchCount}</span>
+      <span class="patch-result" style="color:${ok?'var(--accent)':'var(--danger)'}">
+        ${ok?`Fixed — ${detail.test_result?.tests_passed||0} tests passing`:'Patch did not fix all failures'}
+      </span>
+      <span class="patch-conf">${detail.confidence||''}</span>
+    </div>
+    <div class="patch-body">
+      <div style="margin-bottom:6px">${detail.analysis||''}</div>
+      <div style="color:var(--text3);font-size:11px">${detail.explanation||''}</div>
+      ${detail.files_patched?.length?`<div class="patch-files">${detail.files_patched.map(f=>`<span class="patch-file">${f}</span>`).join('')}</div>`:''}
+    </div>
+  `;
+  const body = document.getElementById('bodypatches');
+  body.insertBefore(card, body.firstChild);
+  setBadge('patcher', `${patchCount}`);
+  log(`🔧 Patch #${detail.attempt||patchCount}: ${ok?'✅ fixed':'❌ failed'}`, ok?'ok':'fail', 'patcher');
+  showTab('patches');
+}
+
+function renderQA(report) {
+  if (!report) return;
+  show('qa');
+  const pass = report.overall_status==='pass';
+  document.getElementById('bodyqa').innerHTML = `
+    <div class="qa-hero">
+      <div class="qa-verdict ${pass?'qa-pass':'qa-fail'}">${pass?'PASS':'FAIL'}</div>
+      <div class="qa-stats">
+        ${report.collection_failed
+          ?`<div style="color:var(--danger);font-weight:700">⛔ Import error — test collection failed</div><div style="font-size:11px;color:var(--text3);margin-top:3px">Self-Healer triggered to fix imports.</div>`
+          :`<div>Tests run: <strong>${report.tests_run||0}</strong></div>
+            <div>Passed: <strong style="color:var(--accent)">${report.tests_passed||0}</strong></div>
+            <div>Failed: <strong style="color:var(--danger)">${report.tests_failed||0}</strong></div>`}
+      </div>
+    </div>
+    ${report.root_cause?`<div style="padding:11px 13px;background:rgba(255,85,114,0.07);border:1px solid rgba(255,85,114,0.2);border-radius:8px;font-size:12px;margin-bottom:12px"><div class="label" style="margin-bottom:5px;color:var(--danger)">Root Cause</div>${report.root_cause}</div>`:''}
+    ${report.failure_summary?`<div style="margin-bottom:12px"><div class="label" style="margin-bottom:6px">Output</div><pre style="background:var(--surface2);border-radius:8px;font-size:10px;max-height:180px">${report.failure_summary.slice(0,500)}</pre></div>`:''}
+    ${(report.recommendations||[]).length?`<div class="label" style="margin-bottom:8px">Recommendations</div>${report.recommendations.map(r=>`<div class="rec">${r}</div>`).join('')}`:''}
+  `;
+  showTab('qa');
+}
+
+function renderGit(report) {
+  if (!report?.git_log) return;
+  show('git');
+  document.getElementById('bodygit').innerHTML = `
+    <div class="stat-grid" style="margin-bottom:18px">
+      <div class="stat-card"><div class="stat-label">Release Tag</div><div class="stat-val" style="color:var(--c-git)">${report.tag||'v0.1.0'}</div></div>
+      <div class="stat-card"><div class="stat-label">Files</div><div class="stat-val">${report.file_count||0}</div></div>
+    </div>
+    <div class="label" style="margin-bottom:10px">Commits</div>
+    ${(report.commits||[]).map(c=>`<div class="commit"><div class="commit-dot"></div><div><div class="commit-msg">${c.message}</div><div class="commit-meta">${(c.tickets||[]).join(' · ')||'initial'}</div></div></div>`).join('')}
+    ${report.git_log?`<div class="label" style="margin:14px 0 8px">git log</div><div style="background:var(--surface2);border-radius:8px;padding:12px">${report.git_log.split('\n').filter(Boolean).map(l=>{const p=l.split(' ');return`<div class="git-log-line"><span class="git-hash">${p[0]}</span><span>${p.slice(1).join(' ')}</span></div>`;}).join('')}</div>`:''}
+  `;
+  showTab('git');
+}
+
+function renderGitHub(report) {
+  if (!report) return;
+  show('github');
+  document.getElementById('bodygithub').innerHTML = `
+    <div style="margin-bottom:18px">
+      ${report.pr_url?`<a href="${report.pr_url}" target="_blank" class="gh-link">🔗 Pull Request <span class="gh-pr-badge">PR #${report.pr_number}</span></a>`:''}
+      <a href="${report.branch_url||report.repo_url}" target="_blank" class="gh-link">🌿 Branch: <code style="font-family:var(--mono);font-size:12px">${report.branch}</code></a>
+      <a href="${report.repo_url}" target="_blank" class="gh-link">📁 Repository →</a>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-label">Branch</div><div style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--c-github);word-break:break-all">${report.branch}</div></div>
+      <div class="stat-card"><div class="stat-label">Files pushed</div><div class="stat-val">${report.file_count||0}</div></div>
+    </div>
+    <div style="margin-top:12px;padding:11px 13px;background:rgba(192,132,252,0.06);border:1px solid rgba(192,132,252,0.15);border-radius:8px;font-size:12px;color:var(--text3)">
+      💡 One repo, one branch per project — no clutter.
+    </div>
+  `;
+  showTab('github');
+}
+
+function renderDevOps(report) {
+  if (!report) return;
+  show('devops');
+  document.getElementById('bodydevops').innerHTML = `
+    <div class="stat-grid" style="margin-bottom:18px">
+      <div class="stat-card"><div class="stat-label">Status</div><div class="stat-val ${report.status==='ready'?'ok':'warn'}">${report.status||'—'}</div></div>
+      <div class="stat-card"><div class="stat-label">QA</div><div class="stat-val ${report.qa_status==='pass'?'ok':'bad'}">${report.qa_status||'—'}</div></div>
+    </div>
+    <div class="label" style="margin-bottom:8px">Files Generated</div>
+    ${(report.deployment_files||[]).map(f=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface2);border-radius:7px;margin-bottom:4px;font-family:var(--mono);font-size:11px"><span style="color:var(--accent)">✓</span>${f}</div>`).join('')}
+    <div class="label" style="margin:14px 0 8px">Run Commands</div>
+    ${Object.entries(report.run_commands||{}).map(([k,v])=>`<div class="cmd"><div class="cmd-label">${k}</div><div class="cmd-val">$ ${v}</div></div>`).join('')}
+    ${report.generated_files?.Dockerfile?`<div class="label" style="margin:14px 0 8px">Dockerfile</div><div class="code-viewer"><div class="code-viewer-head"><span>Dockerfile</span></div><pre>${report.generated_files.Dockerfile.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre></div>`:''}
+    ${report.notes?`<div style="margin-top:12px;padding:12px 14px;background:rgba(34,211,238,0.06);border:1px solid rgba(34,211,238,0.15);border-radius:8px;font-size:12px;color:var(--text2)">${report.notes}</div>`:''}
+  `;
+  showTab('devops');
+}
+
+// ── RESET ──────────────────────────────────────────────────────────────────────
+function resetUI() {
+  ['ba','scrum','dev','qa','git','github','devops'].forEach(k => {
+    const box = document.getElementById('ag-'+k);
+    const st  = document.getElementById('st-'+k);
+    if (box) { box.className = 'ag-box'; box.style.setProperty('--c', `var(--c-${k})`); }
+    if (st)  st.textContent = 'Waiting';
+    const prog = document.getElementById('prog-'+k);
+    if (prog) prog.className = 'prog-seg';
+    const badge = document.getElementById('badge-'+k);
+    if (badge) badge.textContent = '—';
+    const tbadge = document.getElementById('tbadge-'+(k==='dev'?'code':k));
+    if (tbadge) tbadge.textContent = '—';
+  });
+  // Reset patcher
+  const pb = document.getElementById('ag-patcher');
+  if (pb) pb.style.display = 'none';
+  document.getElementById('arrow-qa-patcher').style.display = 'none';
+  document.getElementById('arrow-patcher-qa').style.display = 'none';
+  ['prog-patcher','badge-patcher'].forEach(id => { const el=document.getElementById(id); if(el) { el.className='prog-seg'; el.textContent='—'; }});
+
+  // Reset all arrows
+  document.querySelectorAll('.arrow-line').forEach(el => el.className = 'arrow-line');
+
+  // Reset tabs content
+  ['ba','scrum','code','patches','qa','git','github','devops'].forEach(id => {
+    const em = document.getElementById('empty'+id);
+    const bd = document.getElementById('body'+id);
+    if (em) em.style.display = 'flex';
+    if (bd) { bd.style.display = 'none'; if (id!=='code') bd.innerHTML = ''; }
+  });
+  document.getElementById('overviewEmpty').style.display = 'flex';
+  document.getElementById('overviewContent').style.display = 'none';
+  document.getElementById('ovStats').innerHTML = '';
+
+  codeFiles = []; activeFile = null; patchCount = 0;
+  document.getElementById('fileList').innerHTML = '';
+  document.getElementById('codeViewer').style.display = 'none';
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agentic SDLC Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #09090f;
+  --surface: #111118;
+  --card:    #16161f;
+  --border:  rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.13);
+  --text:    #e8eaf4;
+  --text2:   #8a8da8;
+  --text3:   #44465a;
+  --mono:    'JetBrains Mono', monospace;
+  --sans:    'Inter', sans-serif;
+
+  --c-ba:      #60a5fa;
+  --c-scrum:   #a78bfa;
+  --c-dev:     #34d399;
+  --c-qa:      #fbbf24;
+  --c-git:     #f472b6;
+  --c-github:  #c084fc;
+  --c-devops:  #22d3ee;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 13px; overflow: hidden; }
+::-webkit-scrollbar { width: 3px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: #2a2a38; border-radius: 3px; }
+
+/* LAYOUT */
+.shell { display: grid; grid-template-rows: 48px 1fr; height: 100vh; }
+
+/* TOP BAR */
+.topbar {
+  display: flex; align-items: center; gap: 16px;
+  padding: 0 20px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  z-index: 100;
+}
+.logo { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.logo-mark {
+  width: 24px; height: 24px; border-radius: 6px;
+  background: linear-gradient(135deg, #818cf8, #34d399);
+  display: grid; place-items: center;
+  font-family: var(--mono); font-size: 10px; font-weight: 600; color: #09090f;
+}
+.logo-name { font-size: 13px; font-weight: 600; letter-spacing: -0.2px; }
+.logo-name span { color: #34d399; }
+.topbar-input {
+  flex: 1; display: flex; align-items: center;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0 12px;
+  gap: 10px;
+  transition: border-color 0.15s;
+}
+.topbar-input:focus-within { border-color: rgba(52,211,153,0.3); }
+.topbar-input input {
+  flex: 1; background: none; border: none; outline: none;
+  color: var(--text); font-family: var(--sans); font-size: 12px;
+  padding: 8px 0;
+}
+.topbar-input input::placeholder { color: var(--text3); }
+.run-btn {
+  flex-shrink: 0;
+  padding: 7px 16px;
+  background: rgba(52,211,153,0.12);
+  border: 1px solid rgba(52,211,153,0.3);
+  border-radius: 7px;
+  color: #34d399;
+  font-family: var(--mono); font-size: 11px; font-weight: 500;
+  cursor: pointer;
+  display: flex; align-items: center; gap: 6px;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.run-btn:hover:not(:disabled) { background: rgba(52,211,153,0.2); border-color: rgba(52,211,153,0.5); }
+.run-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.run-btn.live { color: #fbbf24; background: rgba(251,191,36,0.08); border-color: rgba(251,191,36,0.3); }
+.status-pill {
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--mono); font-size: 10px; color: var(--text2);
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 20px; padding: 4px 10px;
+  flex-shrink: 0;
+}
+.s-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text3); transition: all 0.3s; }
+.s-dot.running { background: #fbbf24; animation: blink 1.2s ease-in-out infinite; }
+.s-dot.done    { background: #34d399; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+/* MAIN CANVAS */
+.canvas {
+  display: grid;
+  grid-template-columns: 1fr 420px;
+  overflow: hidden;
+  height: 100%;
+}
+.canvas.panel-closed { grid-template-columns: 1fr 0; }
+
+/* PIPELINE STAGE */
+.pipeline {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 40px;
+  gap: 0;
+}
+
+/* SVG ARROW LAYER */
+#arrowLayer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+
+/* AGENT CARDS */
+.ag-wrap {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 700px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+.ag-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  width: 100%;
+  padding: 6px 0;
+}
+
+/* Spacer between rows (for arrow gap) */
+.ag-gap { height: 36px; width: 100%; position: relative; }
+
+.agent-card {
+  flex: 1;
+  max-width: 200px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+  position: relative;
+  overflow: hidden;
+  user-select: none;
+}
+.agent-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 2px;
+  background: var(--ag-color);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.agent-card.active::before { opacity: 1; }
+.agent-card:hover { border-color: var(--border2); transform: translateY(-1px); }
+.agent-card.active {
+  border-color: color-mix(in srgb, var(--ag-color) 40%, transparent);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--ag-color) 12%, transparent);
+}
+.agent-card.done {
+  border-color: color-mix(in srgb, var(--ag-color) 25%, transparent);
+}
+.agent-card.error { border-color: rgba(248,113,113,0.3); }
+.agent-card.skip { opacity: 0.35; }
+
+.ac-top { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.ac-icon {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--ag-color) 12%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--ag-color) 20%, transparent);
+  display: grid; place-items: center;
+  font-size: 15px; flex-shrink: 0;
+  transition: box-shadow 0.2s;
+}
+.agent-card.active .ac-icon {
+  box-shadow: 0 0 10px color-mix(in srgb, var(--ag-color) 25%, transparent);
+}
+.ac-name { font-size: 12px; font-weight: 600; }
+.ac-sub {
+  font-family: var(--mono); font-size: 9px; color: var(--text3);
+  display: flex; align-items: center; gap: 5px;
+}
+.agent-card.active .ac-sub { color: color-mix(in srgb, var(--ag-color) 60%, var(--text2)); }
+.agent-card.done .ac-sub   { color: #34d399; }
+.agent-card.error .ac-sub  { color: #f87171; }
+
+.ac-badge {
+  font-family: var(--mono); font-size: 9px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 5px; padding: 2px 6px; color: var(--text3);
+  transition: all 0.2s;
+}
+.agent-card.done .ac-badge {
+  color: color-mix(in srgb, var(--ag-color) 80%, white);
+  background: color-mix(in srgb, var(--ag-color) 10%, var(--surface));
+  border-color: color-mix(in srgb, var(--ag-color) 22%, transparent);
+}
+
+/* SPIN */
+.spin {
+  display: inline-block; width: 7px; height: 7px;
+  border: 1.5px solid currentColor; border-top-color: transparent;
+  border-radius: 50%; animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* DETAIL PANEL */
+.detail-panel {
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: translateX(0);
+  transition: transform 0.25s ease;
+}
+.canvas.panel-closed .detail-panel { transform: translateX(100%); }
+
+.dp-header {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.dp-agent-icon {
+  width: 34px; height: 34px; border-radius: 9px;
+  background: color-mix(in srgb, var(--dp-color, #34d399) 12%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--dp-color, #34d399) 20%, transparent);
+  display: grid; place-items: center; font-size: 16px; flex-shrink: 0;
+}
+.dp-title-block { flex: 1; min-width: 0; }
+.dp-title { font-size: 13px; font-weight: 600; }
+.dp-status { font-family: var(--mono); font-size: 9px; color: var(--text3); margin-top: 1px; }
+.dp-close {
+  background: none; border: none; color: var(--text3);
+  font-size: 18px; cursor: pointer; padding: 4px; line-height: 1;
+  transition: color 0.15s;
+}
+.dp-close:hover { color: var(--text); }
+
+.dp-tabs {
+  display: flex; gap: 2px; padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto; flex-shrink: 0;
+}
+.dp-tabs::-webkit-scrollbar { height: 0; }
+.dp-tab {
+  font-size: 11px; color: var(--text3);
+  padding: 4px 10px; border-radius: 5px;
+  cursor: pointer; white-space: nowrap;
+  transition: color 0.1s, background 0.1s;
+}
+.dp-tab:hover { color: var(--text2); background: var(--card); }
+.dp-tab.active { color: var(--text); background: var(--card); }
+
+.dp-body { flex: 1; overflow-y: auto; padding: 16px; }
+
+/* PANEL CONTENT STYLES */
+.empty-hint {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; height: 100%; gap: 8px; opacity: 0.4;
+  text-align: center;
+}
+.empty-hint .ei { font-size: 28px; }
+.empty-hint .et { font-size: 13px; font-weight: 600; color: var(--text2); }
+.empty-hint .es { font-size: 11px; color: var(--text3); }
+
+.sec { font-family: var(--mono); font-size: 9px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--text3); margin: 14px 0 8px; display: flex; align-items: center; gap: 8px; }
+.sec::after { content:''; flex:1; height:1px; background: var(--border); }
+
+.kv { display: flex; justify-content: space-between; align-items: baseline; padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 11px; }
+.kv:last-child { border-bottom: none; }
+.kv-k { color: var(--text2); }
+.kv-v { font-family: var(--mono); font-size: 10px; color: var(--text); }
+
+.story-card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 6px; }
+.s-head { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; }
+.s-id { font-family: var(--mono); font-size: 9px; color: var(--c-ba); background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.18); border-radius: 4px; padding: 2px 5px; }
+.s-title { font-size: 11px; font-weight: 500; }
+.ac-item { font-size: 11px; color: var(--text2); padding: 3px 0 3px 12px; border-left: 1px solid var(--border2); margin-bottom: 2px; }
+
+.ticket-row { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: var(--card); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 3px; }
+.t-id { font-family: var(--mono); font-size: 9px; color: var(--c-scrum); background: rgba(167,139,250,0.08); border: 1px solid rgba(167,139,250,0.15); border-radius: 4px; padding: 2px 5px; flex-shrink: 0; }
+.t-name { flex: 1; font-size: 11px; }
+.t-pts { font-family: var(--mono); font-size: 9px; color: var(--text3); }
+
+.sprint-block { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 6px; }
+.sp-head { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 11px; font-weight: 600; }
+.sp-goal { font-size: 10px; color: var(--text2); margin-bottom: 6px; }
+.sp-chips { display: flex; flex-wrap: wrap; gap: 3px; }
+.sp-chip { font-family: var(--mono); font-size: 9px; background: rgba(167,139,250,0.08); border: 1px solid rgba(167,139,250,0.15); border-radius: 3px; padding: 2px 5px; color: var(--c-scrum); }
+
+.file-list-dp { display: flex; flex-direction: column; gap: 2px; margin-bottom: 10px; }
+.file-item-dp { display: flex; align-items: center; gap: 7px; padding: 5px 8px; border-radius: 6px; cursor: pointer; transition: background 0.1s; }
+.file-item-dp:hover { background: var(--card); }
+.file-item-dp.active { background: rgba(52,211,153,0.07); border: 1px solid rgba(52,211,153,0.15); }
+.fi-name { font-family: var(--mono); font-size: 10px; color: var(--text2); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fi-lines { font-family: var(--mono); font-size: 9px; color: var(--text3); }
+.file-item-dp.active .fi-name { color: #34d399; }
+
+.code-box { background: var(--card); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+.code-head { display: flex; align-items: center; justify-content: space-between; padding: 6px 10px; border-bottom: 1px solid var(--border); }
+.code-fname { font-family: var(--mono); font-size: 10px; color: var(--text2); }
+.code-copy { background: none; border: 1px solid var(--border); border-radius: 4px; color: var(--text3); font-family: var(--mono); font-size: 9px; padding: 2px 7px; cursor: pointer; transition: color 0.1s; }
+.code-copy:hover { color: var(--text); }
+pre.code-pre { font-family: var(--mono); font-size: 9.5px; line-height: 1.7; padding: 10px 12px; color: var(--text2); white-space: pre-wrap; word-break: break-all; max-height: 320px; overflow-y: auto; }
+
+.qa-pass { font-family: var(--mono); font-size: 28px; font-weight: 700; color: #34d399; }
+.qa-fail { font-family: var(--mono); font-size: 28px; font-weight: 700; color: #f87171; }
+.qa-hero-box { display: flex; align-items: center; gap: 14px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin-bottom: 12px; }
+
+.commit-row { display: flex; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); }
+.commit-row:last-child { border-bottom: none; }
+.commit-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--c-git); margin-top: 4px; flex-shrink: 0; }
+.commit-msg { font-size: 11px; font-weight: 500; margin-bottom: 1px; }
+.commit-meta { font-family: var(--mono); font-size: 9px; color: var(--text3); }
+
+.gh-link { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--card); border: 1px solid var(--border); border-radius: 7px; font-size: 11px; color: var(--text); text-decoration: none; margin-bottom: 6px; transition: border-color 0.15s; }
+.gh-link:hover { border-color: var(--border2); }
+
+.cmd-row { display: flex; gap: 8px; align-items: baseline; background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 7px 10px; margin-bottom: 4px; }
+.cmd-lbl { font-family: var(--mono); font-size: 9px; color: var(--text3); flex-shrink: 0; }
+.cmd-val { font-family: var(--mono); font-size: 10px; color: #34d399; word-break: break-all; }
+
+.note-card { background: var(--card); border: 1px solid var(--border); border-radius: 7px; padding: 9px 11px; font-size: 11px; color: var(--text2); margin-bottom: 6px; }
+
+/* STAT GRID */
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 7px; margin-bottom: 14px; }
+.stat-c { background: var(--card); border: 1px solid var(--border); border-radius: 7px; padding: 10px 12px; }
+.stat-v { font-family: var(--mono); font-size: 20px; font-weight: 600; }
+.stat-l { font-size: 10px; color: var(--text3); margin-top: 2px; }
+.ok-c { color: #34d399; } .bad-c { color: #f87171; } .warn-c { color: #fbbf24; }
+
+/* CLARIFY OVERLAY */
+.clarify-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(9,9,15,0.88); z-index: 300;
+  backdrop-filter: blur(5px);
+  align-items: center; justify-content: center; padding: 20px;
+}
+.clarify-overlay.open { display: flex; }
+.clarify-box {
+  background: var(--surface); border: 1px solid var(--border2);
+  border-radius: 14px; width: 100%; max-width: 520px; max-height: 80vh;
+  display: flex; flex-direction: column; overflow: hidden;
+  box-shadow: 0 40px 80px rgba(0,0,0,0.7);
+}
+.cl-head { display: flex; align-items: center; gap: 10px; padding: 16px 18px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.cl-icon { width: 32px; height: 32px; background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.22); border-radius: 8px; display: grid; place-items: center; font-size: 16px; flex-shrink: 0; }
+.cl-title { font-size: 13px; font-weight: 600; }
+.cl-sub { font-size: 11px; color: var(--text3); }
+.cl-body { flex: 1; overflow-y: auto; padding: 14px 18px; }
+.cq-box { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 8px; }
+.cq-num { font-family: var(--mono); font-size: 9px; color: var(--text3); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 3px; }
+.cq-q { font-size: 12px; font-weight: 600; margin-bottom: 3px; }
+.cq-why { font-size: 10px; color: var(--text3); margin-bottom: 8px; }
+.cq-opts { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }
+.cq-opt { font-size: 11px; padding: 3px 9px; background: var(--surface); border: 1px solid var(--border); border-radius: 5px; color: var(--text2); cursor: pointer; transition: all 0.12s; }
+.cq-opt:hover { border-color: var(--border2); color: var(--text); }
+.cq-opt.sel { border-color: rgba(52,211,153,0.4); color: #34d399; background: rgba(52,211,153,0.06); }
+.cq-input { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 5px; padding: 6px 9px; color: var(--text); font-family: var(--sans); font-size: 11px; outline: none; transition: border-color 0.15s; }
+.cq-input:focus { border-color: rgba(52,211,153,0.3); }
+.cl-foot { padding: 12px 18px; border-top: 1px solid var(--border); flex-shrink: 0; }
+.cl-submit { width: 100%; padding: 9px; background: rgba(52,211,153,0.1); border: 1px solid rgba(52,211,153,0.3); border-radius: 7px; color: #34d399; font-family: var(--mono); font-size: 11px; cursor: pointer; transition: background 0.15s; }
+.cl-submit:hover { background: rgba(52,211,153,0.18); }
+
+/* PROGRESS LINE (top of canvas) */
+.prog-line { height: 2px; background: var(--surface); overflow: hidden; flex-shrink: 0; }
+.prog-fill { height: 100%; width: 0; background: linear-gradient(to right, #818cf8, #34d399); transition: width 0.4s; }
+.prog-fill.running { width: 100%; animation: progAnim 1.6s ease-in-out infinite; }
+@keyframes progAnim { 0%{transform:translateX(-100%)} 100%{transform:translateX(100%); width:80%;} }
+
+/* TICKET PROGRESS (bottom strip) */
+.ticket-strip {
+  position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 6px;
+  background: rgba(9,9,15,0.85); border: 1px solid var(--border);
+  border-radius: 20px; padding: 5px 12px;
+  font-family: var(--mono); font-size: 10px; color: var(--text2);
+  z-index: 10; transition: opacity 0.3s;
+  backdrop-filter: blur(8px);
+}
+.ticket-strip.hidden { opacity: 0; pointer-events: none; }
+.ts-progress { display: flex; gap: 3px; }
+.ts-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--border2); transition: background 0.3s; }
+.ts-dot.done { background: #34d399; }
+.ts-dot.active { background: #fbbf24; animation: blink 1.2s ease-in-out infinite; }
+.ts-dot.skip { background: #f87171; opacity: 0.5; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="logo">
+      <div class="logo-mark">A∫</div>
+      <div class="logo-name">Agentic <span>SDLC</span></div>
+    </div>
+    <div class="topbar-input">
+      <input type="text" id="projectInput" placeholder="Describe what you want built… e.g. Build a task API with JWT auth and CRUD">
+    </div>
+    <button class="run-btn" id="runBtn" onclick="startPipeline()">
+      <span id="runIco">▶</span>
+      <span id="runTxt">Run</span>
+    </button>
+    <div class="status-pill">
+      <div class="s-dot" id="sDot"></div>
+      <span id="sText">Ready</span>
+    </div>
+  </div>
+
+  <!-- PROGRESS LINE -->
+  <div class="prog-line" style="margin:0"><div class="prog-fill" id="progFill"></div></div>
+
+  <!-- CANVAS -->
+  <div class="canvas panel-closed" id="canvas">
+
+    <!-- PIPELINE -->
+    <div class="pipeline" id="pipeline">
+      <svg id="arrowLayer" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible;"></svg>
+
+      <div class="ag-wrap">
+
+        <!-- Row 1: BA + SCRUM -->
+        <div class="ag-row">
+          <div class="agent-card" id="ag-ba" style="--ag-color:var(--c-ba)" onclick="openPanel('ba')">
+            <div class="ac-top">
+              <div class="ac-icon">🧠</div>
+              <div style="flex:1;min-width:0">
+                <div class="ac-name">Business Analyst</div>
+                <div class="ac-sub" id="st-ba">Waiting</div>
+              </div>
+            </div>
+            <div class="ac-badge" id="badge-ba">—</div>
+          </div>
+          <div class="agent-card" id="ag-scrum" style="--ag-color:var(--c-scrum)" onclick="openPanel('scrum')">
+            <div class="ac-top">
+              <div class="ac-icon">📋</div>
+              <div style="flex:1;min-width:0">
+                <div class="ac-name">Scrum Master</div>
+                <div class="ac-sub" id="st-scrum">Waiting</div>
+              </div>
+            </div>
+            <div class="ac-badge" id="badge-scrum">—</div>
+          </div>
+        </div>
+
+        <div class="ag-gap" id="gap-1"></div>
+
+        <!-- Row 2: DEV (full width) -->
+        <div class="ag-row">
+          <div class="agent-card" id="ag-dev" style="--ag-color:var(--c-dev);max-width:420px;flex:1" onclick="openPanel('dev')">
+            <div class="ac-top">
+              <div class="ac-icon">💻</div>
+              <div style="flex:1;min-width:0">
+                <div class="ac-name">Developer</div>
+                <div class="ac-sub" id="st-dev">Waiting</div>
+              </div>
+              <div class="ac-badge" id="badge-dev">—</div>
+            </div>
+            <div id="dev-ticket-label" style="font-family:var(--mono);font-size:9px;color:var(--text3);margin-top:2px;"></div>
+          </div>
+        </div>
+
+        <div class="ag-gap" id="gap-2"></div>
+
+        <!-- Row 3: QA (full width) -->
+        <div class="ag-row">
+          <div class="agent-card" id="ag-qa" style="--ag-color:var(--c-qa);max-width:420px;flex:1" onclick="openPanel('qa')">
+            <div class="ac-top">
+              <div class="ac-icon">🧪</div>
+              <div style="flex:1;min-width:0">
+                <div class="ac-name">QA Engineer</div>
+                <div class="ac-sub" id="st-qa">Waiting</div>
+              </div>
+              <div class="ac-badge" id="badge-qa">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ag-gap" id="gap-3"></div>
+
+        <!-- Row 4: GIT + GITHUB + DEVOPS -->
+        <div class="ag-row">
+          <div class="agent-card" id="ag-git" style="--ag-color:var(--c-git)" onclick="openPanel('git')">
+            <div class="ac-top">
+              <div class="ac-icon">🔀</div>
+              <div style="flex:1;min-width:0">
+                <div class="ac-name">Git</div>
+                <div class="ac-sub" id="st-git">Waiting</div>
+              </div>
+            </div>
+            <div class="ac-badge" id="badge-git">—</div>
+          </div>
+          <div class="agent-card" id="ag-github" style="--ag-color:var(--c-github)" onclick="openPanel('github')">
+            <div class="ac-top">
+              <div class="ac-icon">⬆</div>
+              <div style="flex:1;min-width:0">
+                <div class="ac-name">GitHub</div>
+                <div class="ac-sub" id="st-github">Waiting</div>
+              </div>
+            </div>
+            <div class="ac-badge" id="badge-github">—</div>
+          </div>
+          <div class="agent-card" id="ag-devops" style="--ag-color:var(--c-devops)" onclick="openPanel('devops')">
+            <div class="ac-top">
+              <div class="ac-icon">🚀</div>
+              <div style="flex:1;min-width:0">
+                <div class="ac-name">DevOps</div>
+                <div class="ac-sub" id="st-devops">Waiting</div>
+              </div>
+            </div>
+            <div class="ac-badge" id="badge-devops">—</div>
+          </div>
+        </div>
+
+      </div><!-- /ag-wrap -->
+
+      <!-- Ticket progress strip -->
+      <div class="ticket-strip hidden" id="ticketStrip">
+        <span id="stripLabel">Sprint 1</span>
+        <div class="ts-progress" id="stripDots"></div>
+        <span id="stripCount"></span>
+      </div>
+
+    </div><!-- /pipeline -->
+
+    <!-- DETAIL PANEL -->
+    <div class="detail-panel" id="detailPanel">
+      <div class="dp-header">
+        <div class="dp-agent-icon" id="dp-icon">—</div>
+        <div class="dp-title-block">
+          <div class="dp-title" id="dp-title">Agent</div>
+          <div class="dp-status" id="dp-status">Click an agent to inspect</div>
+        </div>
+        <button class="dp-close" onclick="closePanel()">×</button>
+      </div>
+      <div class="dp-tabs" id="dp-tabs"></div>
+      <div class="dp-body" id="dp-body">
+        <div class="empty-hint">
+          <div class="ei">👈</div>
+          <div class="et">Click any agent card</div>
+          <div class="es">Its output will appear here.</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /canvas -->
+</div><!-- /shell -->
+
+<!-- CLARIFY OVERLAY -->
+<div class="clarify-overlay" id="clarifyOverlay">
+  <div class="clarify-box">
+    <div class="cl-head">
+      <div class="cl-icon">⚠</div>
+      <div>
+        <div class="cl-title">Clarification needed</div>
+        <div class="cl-sub" id="cl-sub">A few quick questions before we start</div>
+      </div>
+    </div>
+    <div class="cl-body" id="cl-body"></div>
+    <div class="cl-foot">
+      <button class="cl-submit" onclick="submitClarification()">Submit &amp; run →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'http://localhost:8000';
+let running = false, codeFiles = [], activeFile = null;
+let pendingInput = '', clarifyQs = [], clarifyAns = {};
+let t0 = 0, openAgentKey = null;
+let agentData = {};
+let ticketStatuses = {};
+
+const agentMeta = {
+  ba:     { icon:'🧠', name:'Business Analyst',  color:'var(--c-ba)',     tabs:['Spec'] },
+  scrum:  { icon:'📋', name:'Scrum Master',       color:'var(--c-scrum)', tabs:['Backlog','Sprints'] },
+  dev:    { icon:'💻', name:'Developer',           color:'var(--c-dev)',   tabs:['Files','Viewer'] },
+  qa:     { icon:'🧪', name:'QA Engineer',         color:'var(--c-qa)',    tabs:['Report'] },
+  git:    { icon:'🔀', name:'Git Agent',           color:'var(--c-git)',   tabs:['Log'] },
+  github: { icon:'⬆',  name:'GitHub Push',         color:'var(--c-github)',tabs:['Links'] },
+  devops: { icon:'🚀', name:'DevOps',              color:'var(--c-devops)',tabs:['Package'] },
+};
+
+/* ── ARROWS ──────────────────────────────────────────────────────────────── */
+let animationFrames = {};
+
+function drawArrows() {
+  const svg = document.getElementById('arrowLayer');
+  svg.innerHTML = '';
+  const ns = 'http://www.w3.org/2000/svg';
+  const pl = document.getElementById('pipeline');
+
+  // Define dashed marker
+  const defs = document.createElementNS(ns, 'defs');
+  defs.innerHTML = `
+    <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+      <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>`;
+  svg.appendChild(defs);
+
+  function mid(el) {
+    const r = el.getBoundingClientRect();
+    const pr = pl.getBoundingClientRect();
+    return { x: r.left - pr.left + r.width/2, y: r.top - pr.top + r.height/2, top: r.top - pr.top, bot: r.top - pr.top + r.height, left: r.left - pr.left, right: r.left - pr.left + r.width };
+  }
+
+  const connections = [
+    { from: 'ag-ba',   to: 'ag-dev',    key: 'ba-dev',    color: 'var(--c-ba)' },
+    { from: 'ag-scrum',to: 'ag-dev',    key: 'scrum-dev', color: 'var(--c-scrum)' },
+    { from: 'ag-dev',  to: 'ag-qa',     key: 'dev-qa',    color: 'var(--c-dev)' },
+    { from: 'ag-qa',   to: 'ag-dev',    key: 'qa-dev',    color: 'var(--c-qa)',    dashed: true, label: 'retry', bidirectional: true },
+    { from: 'ag-qa',   to: 'ag-git',    key: 'qa-git',    color: 'var(--c-qa)' },
+    { from: 'ag-git',  to: 'ag-github', key: 'git-gh',    color: 'var(--c-git)' },
+    { from: 'ag-github',to:'ag-devops', key: 'gh-devops', color: 'var(--c-github)' },
+  ];
+
+  connections.forEach(({ from, to, key, color, dashed, label }) => {
+    const fEl = document.getElementById(from);
+    const tEl = document.getElementById(to);
+    if (!fEl || !tEl) return;
+    const f = mid(fEl), t2 = mid(tEl);
+
+    // Determine if this conn is active
+    const fState = fEl.className;
+    const tState = tEl.className;
+    const isActive = fState.includes('active') || tState.includes('active');
+    const isDone = fState.includes('done') && !tState.includes('active');
+
+    const opacity = isDone ? 0.5 : isActive ? 1 : 0.25;
+    const strokeW = isActive ? 1.5 : 1;
+
+    // Draw bezier
+    let d;
+    const dx = Math.abs(t2.x - f.x), dy = Math.abs(t2.y - f.y);
+    if (dy > dx) {
+      // vertical flow — straight with slight curve
+      const mx = (f.x + t2.x) / 2;
+      // From bottom of source to top of dest
+      const fy = f.bot || f.y, ty = t2.top || t2.y;
+      d = `M ${f.x} ${fy} C ${f.x} ${fy+20} ${t2.x} ${ty-20} ${t2.x} ${ty}`;
+    } else {
+      // horizontal flow — angled
+      d = `M ${f.right || f.x} ${f.y} C ${f.x+50} ${f.y} ${t2.x-50} ${t2.y} ${t2.left || t2.x} ${t2.y}`;
+    }
+
+    const path = document.createElementNS(ns, 'path');
+    path.setAttribute('d', d);
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', color);
+    path.setAttribute('stroke-width', strokeW);
+    path.setAttribute('opacity', opacity);
+    path.setAttribute('stroke-dasharray', dashed ? '5 4' : (isActive ? '6 4' : '4 6'));
+    path.setAttribute('marker-end', 'url(#ah)');
+    path.id = 'arr-' + key;
+
+    if (isActive) {
+      const len = path.getTotalLength ? path.getTotalLength() : 100;
+      path.style.animation = `dash-${key} 1.2s linear infinite`;
+      // inject keyframe
+      if (!document.querySelector(`style[data-arrow="${key}"]`)) {
+        const s = document.createElement('style');
+        s.setAttribute('data-arrow', key);
+        s.textContent = `@keyframes dash-${key} { to { stroke-dashoffset: -20; } }`;
+        document.head.appendChild(s);
+      }
+    }
+
+    svg.appendChild(path);
+
+    // Label for retry arrow
+    if (label && dashed) {
+      const lx = (f.x + t2.x) / 2 + 20;
+      const ly = (f.y + t2.y) / 2;
+      const txt = document.createElementNS(ns, 'text');
+      txt.setAttribute('x', lx); txt.setAttribute('y', ly);
+      txt.setAttribute('font-size', '9'); txt.setAttribute('fill', color);
+      txt.setAttribute('opacity', opacity * 0.8);
+      txt.setAttribute('font-family', 'JetBrains Mono, monospace');
+      txt.textContent = label;
+      svg.appendChild(txt);
+    }
+  });
+}
+
+window.addEventListener('resize', drawArrows);
+
+/* ── PANEL ───────────────────────────────────────────────────────────────── */
+function openPanel(key) {
+  openAgentKey = key;
+  const meta = agentMeta[key];
+  if (!meta) return;
+
+  document.getElementById('canvas').classList.remove('panel-closed');
+  const panel = document.getElementById('detailPanel');
+  panel.style.setProperty('--dp-color', meta.color);
+  document.getElementById('dp-icon').textContent = meta.icon;
+  document.getElementById('dp-title').textContent = meta.name;
+
+  const agEl = document.getElementById('ag-' + (key === 'dev' ? 'dev' : key));
+  const state = agEl ? (agEl.classList.contains('done') ? 'Complete ✓' : agEl.classList.contains('active') ? 'Running…' : agEl.classList.contains('error') ? 'Failed ✗' : 'Waiting') : '—';
+  document.getElementById('dp-status').textContent = state;
+
+  // Tabs
+  const tabs = meta.tabs;
+  const tabsEl = document.getElementById('dp-tabs');
+  tabsEl.innerHTML = tabs.map((t,i) => `<div class="dp-tab ${i===0?'active':''}" onclick="switchDpTab('${key}','${t}',this)">${t}</div>`).join('');
+
+  renderDpContent(key, tabs[0]);
+}
+
+function closePanel() {
+  document.getElementById('canvas').classList.add('panel-closed');
+  openAgentKey = null;
+  setTimeout(drawArrows, 300);
+}
+
+function switchDpTab(key, tab, el) {
+  document.querySelectorAll('.dp-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderDpContent(key, tab);
+}
+
+function renderDpContent(key, tab) {
+  const body = document.getElementById('dp-body');
+  const data = agentData[key];
+
+  if (!data) {
+    body.innerHTML = `<div class="empty-hint"><div class="ei">${agentMeta[key]?.icon||'⏳'}</div><div class="et">Not yet run</div><div class="es">This agent hasn't produced output yet.</div></div>`;
+    return;
+  }
+
+  let html = '';
+
+  if (key === 'ba') {
+    if (tab === 'Spec') {
+      html = `
+        <div style="font-size:16px;font-weight:700;margin-bottom:4px">${data.project_title||'—'}</div>
+        <div style="font-size:11px;color:var(--text2);line-height:1.7;margin-bottom:14px">${data.summary||''}</div>
+        <div class="stat-grid">
+          <div class="stat-c"><div class="stat-v">${(data.user_stories||[]).length}</div><div class="stat-l">Stories</div></div>
+          <div class="stat-c"><div class="stat-v">${(data.edge_cases||[]).length}</div><div class="stat-l">Edge cases</div></div>
+        </div>
+        <div class="sec">User Stories</div>
+        ${(data.user_stories||[]).map(us => `
+          <div class="story-card">
+            <div class="s-head"><span class="s-id">${us.id}</span><span class="s-title">As a <em style="color:var(--c-ba);font-style:normal">${us.role}</em>, I want to ${us.goal}</span></div>
+            ${(us.acceptance_criteria||[]).map(c=>`<div class="ac-item">✓ ${c}</div>`).join('')}
+          </div>`).join('')}
+        ${(data.edge_cases||[]).length ? `<div class="sec">Edge Cases</div>${data.edge_cases.map(e=>`<div class="note-card">${e}</div>`).join('')}` : ''}`;
+    }
+  }
+
+  else if (key === 'scrum') {
+    if (tab === 'Backlog') {
+      html = `
+        <div class="stat-grid">
+          <div class="stat-c"><div class="stat-v">${(data.tickets||[]).length}</div><div class="stat-l">Tickets</div></div>
+          <div class="stat-c"><div class="stat-v">${(data.tickets||[]).reduce((s,t)=>s+(t.story_points||0),0)}</div><div class="stat-l">Points</div></div>
+        </div>
+        ${(data.tickets||[]).map(tk=>`
+          <div class="ticket-row">
+            <span class="t-id">${tk.id}</span>
+            <span class="t-name">${tk.title}</span>
+            <span class="t-pts">${tk.story_points}pt</span>
+          </div>`).join('')}`;
+    } else {
+      html = (data.sprints||[]).map(sp=>`
+        <div class="sprint-block">
+          <div class="sp-head"><span>Sprint ${sp.sprint_number}</span><span style="font-family:var(--mono);font-size:10px;color:var(--text3)">${sp.total_points||0}pt</span></div>
+          <div class="sp-goal">${sp.goal}</div>
+          <div class="sp-chips">${(sp.ticket_ids||[]).map(id=>`<span class="sp-chip">${id}</span>`).join('')}</div>
+        </div>`).join('');
+    }
+  }
+
+  else if (key === 'dev') {
+    if (!codeFiles.length) {
+      body.innerHTML = `<div class="empty-hint"><div class="ei">💻</div><div class="et">No files yet</div></div>`;
+      return;
+    }
+    if (tab === 'Files') {
+      html = `<div class="file-list-dp">` +
+        codeFiles.map((f,i) => {
+          const ico = f.path.endsWith('.py')?'🐍':f.path.endsWith('.yml')||f.path.endsWith('.yaml')?'⚙':f.path.includes('test')?'🧪':'📄';
+          return `<div class="file-item-dp ${activeFile===i?'active':''}" id="fi-${i}" onclick="dpViewFile(${i})">
+            <span style="font-size:11px;flex-shrink:0">${ico}</span>
+            <span class="fi-name">${f.path}</span>
+            <span class="fi-lines">${(f.content||'').split('\n').length}L</span>
+          </div>`;
+        }).join('') + '</div>';
+    } else {
+      const f = codeFiles[activeFile||0];
+      if (!f) { body.innerHTML = '<div class="empty-hint"><div class="et">Select a file</div></div>'; return; }
+      let c = f.content || '';
+      if (c.includes('\\n') && !c.includes('\n')) c = c.replace(/\\n/g,'\n').replace(/\\t/g,'\t');
+      html = `<div class="code-box">
+        <div class="code-head">
+          <span class="code-fname">${f.path}</span>
+          <button class="code-copy" onclick="copyDpCode()">Copy</button>
+        </div>
+        <pre class="code-pre">${c.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>
+      </div>`;
+    }
+  }
+
+  else if (key === 'qa') {
+    const pass = data.overall_status === 'pass';
+    html = `<div class="qa-hero-box">
+      <div class="${pass?'qa-pass':'qa-fail'}">${pass?'PASS':'FAIL'}</div>
+      <div style="font-size:11px;color:var(--text2);line-height:1.9">
+        ${data.collection_failed
+          ? `<div style="color:#f87171;font-weight:600">⛔ Collection failed — import error</div>`
+          : `<div>Run: <strong>${data.tests_run||0}</strong></div>
+             <div>Passed: <strong style="color:#34d399">${data.tests_passed||0}</strong></div>
+             <div>Failed: <strong style="color:#f87171">${data.tests_failed||0}</strong></div>`}
+      </div>
+    </div>
+    ${data.failure_summary ? `<div class="sec">Output</div><div style="background:var(--card);border:1px solid var(--border);border-radius:7px;padding:9px;font-family:var(--mono);font-size:9px;max-height:180px;overflow-y:auto;color:var(--text2);white-space:pre-wrap;line-height:1.6">${data.failure_summary.slice(0,800)}</div>` : ''}
+    ${(data.recommendations||[]).length ? `<div class="sec" style="margin-top:12px">Recommendations</div>${data.recommendations.map(r=>`<div class="note-card">${r}</div>`).join('')}` : ''}`;
+  }
+
+  else if (key === 'git') {
+    html = `<div class="stat-grid">
+      <div class="stat-c"><div class="stat-v" style="color:var(--c-git);font-size:16px">${data.tag||'v0.1.0'}</div><div class="stat-l">Tag</div></div>
+      <div class="stat-c"><div class="stat-v">${data.file_count||0}</div><div class="stat-l">Files</div></div>
+    </div>
+    <div class="sec">Commits</div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:10px">
+      ${(data.commits||[]).map(c=>`<div class="commit-row"><div class="commit-dot"></div><div><div class="commit-msg">${c.message}</div><div class="commit-meta">${(c.tickets||[]).join(' · ')||'initial'}</div></div></div>`).join('')}
+    </div>
+    ${data.git_log ? `<div class="sec">git log</div><div style="background:var(--card);border:1px solid var(--border);border-radius:7px;padding:9px;font-family:var(--mono);font-size:9px;color:var(--text2);max-height:150px;overflow-y:auto">${data.git_log.split('\n').filter(Boolean).map(l=>{const p=l.trim().split(' ');return`<div style="display:flex;gap:8px;padding:1px 0"><span style="color:var(--c-git)">${p[0]}</span><span>${p.slice(1).join(' ')}</span></div>`;}).join('')}</div>` : ''}`;
+  }
+
+  else if (key === 'github') {
+    html = `<div style="margin-bottom:12px">
+      ${data.pr_url ? `<a href="${data.pr_url}" target="_blank" class="gh-link">🔗 Pull Request #${data.pr_number||''}</a>` : ''}
+      <a href="${data.branch_url||data.repo_url||'#'}" target="_blank" class="gh-link">🌿 Branch: <code style="font-family:var(--mono);font-size:10px;color:#34d399;margin-left:4px">${data.branch||'—'}</code></a>
+      ${data.repo_url ? `<a href="${data.repo_url}" target="_blank" class="gh-link">📁 Repository →</a>` : ''}
+    </div>
+    <div class="stat-grid">
+      <div class="stat-c"><div class="stat-v">${data.file_count||0}</div><div class="stat-l">Files pushed</div></div>
+    </div>`;
+  }
+
+  else if (key === 'devops') {
+    html = `<div class="stat-grid">
+      <div class="stat-c"><div class="stat-v ${data.status==='ready'?'ok-c':'warn-c'}">${data.status||'—'}</div><div class="stat-l">Status</div></div>
+      <div class="stat-c"><div class="stat-v ${data.qa_status==='pass'?'ok-c':'bad-c'}">${data.qa_status||'—'}</div><div class="stat-l">QA</div></div>
+    </div>
+    ${(data.deployment_files||[]).length ? `<div class="sec">Generated files</div>${data.deployment_files.map(f=>`<div style="display:flex;align-items:center;gap:7px;padding:5px 9px;background:var(--card);border:1px solid var(--border);border-radius:5px;margin-bottom:3px;font-family:var(--mono);font-size:10px;color:var(--text2)"><span style="color:#34d399">✓</span>${f}</div>`).join('')}` : ''}
+    ${Object.keys(data.run_commands||{}).length ? `<div class="sec" style="margin-top:10px">Commands</div>${Object.entries(data.run_commands||{}).map(([k,v])=>`<div class="cmd-row"><span class="cmd-lbl">${k}</span><span class="cmd-val">$ ${v}</span></div>`).join('')}` : ''}
+    ${data.generated_files?.Dockerfile ? `<div class="sec" style="margin-top:10px">Dockerfile</div><div style="background:var(--card);border:1px solid var(--border);border-radius:7px;overflow:hidden"><pre style="padding:9px;font-family:var(--mono);font-size:9px;color:var(--text2);white-space:pre-wrap;max-height:200px;overflow-y:auto">${data.generated_files.Dockerfile.replace(/</g,'&lt;')}</pre></div>` : ''}`;
+  }
+
+  body.innerHTML = html;
+}
+
+function dpViewFile(idx) {
+  activeFile = idx;
+  renderDpContent('dev', 'Files');
+  // switch to viewer
+  const tabs = document.querySelectorAll('.dp-tab');
+  tabs.forEach(t => { t.classList.toggle('active', t.textContent === 'Viewer'); });
+  renderDpContent('dev', 'Viewer');
+}
+
+function copyDpCode() {
+  if (!codeFiles[activeFile||0]) return;
+  let c = codeFiles[activeFile||0].content || '';
+  if (c.includes('\\n') && !c.includes('\n')) c = c.replace(/\\n/g,'\n').replace(/\\t/g,'\t');
+  navigator.clipboard.writeText(c);
+  document.querySelector('.code-copy').textContent = 'Copied!';
+  setTimeout(() => { const b = document.querySelector('.code-copy'); if(b) b.textContent = 'Copy'; }, 2000);
+}
+
+/* ── AGENT STATE ─────────────────────────────────────────────────────────── */
+const agMap = { developer:'dev', ba:'ba', scrum:'scrum', qa:'qa', git:'git', github:'github', devops:'devops' };
+
+function setAgent(agent, state, msg) {
+  const k = agMap[agent] || agent;
+  const box = document.getElementById('ag-' + k);
+  const st  = document.getElementById('st-' + k);
+  if (!box) return;
+  box.className = `agent-card ${state}`;
+  if (state === 'active') {
+    st.innerHTML = `<span class="spin"></span> ${msg || 'Running…'}`;
+  } else {
+    st.textContent = msg || (state==='done'?'Complete ✓':state==='error'?'Failed ✗':state==='skip'?'Skipped':'Waiting');
+  }
+  // Refresh panel if open
+  if (openAgentKey === k) {
+    document.getElementById('dp-status').textContent = st.textContent || '';
+  }
+  setTimeout(drawArrows, 50);
+}
+
+function setBadge(agent, val) {
+  const k = agMap[agent] || agent;
+  const b = document.getElementById('badge-' + k);
+  if (b) b.textContent = val;
+}
+
+/* ── PIPELINE ─────────────────────────────────────────────────────────────── */
+async function startPipeline() {
+  const input = document.getElementById('projectInput').value.trim();
+  if (!input) { document.getElementById('projectInput').focus(); return; }
+  if (running) return;
+  pendingInput = input;
+  running = true;
+  resetUI();
+  setRunning(true);
+  t0 = Date.now();
+  await doStream(`${API}/run/stream`, { project_input: input });
+}
+
+async function doStream(url, body) {
+  try {
+    const resp = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const reader = resp.body.getReader();
+    const dec = new TextDecoder();
+    let buf = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream:true });
+      const lines = buf.split('\n'); buf = lines.pop();
+      for (const line of lines) {
+        if (line.startsWith('data: ')) { try { onEvent(JSON.parse(line.slice(6))); } catch(e) {} }
+      }
+    }
+  } catch(e) { console.warn('Stream error:', e.message); }
+  if (!document.getElementById('clarifyOverlay').classList.contains('open')) setRunning(false);
+}
+
+function setRunning(on) {
+  running = on;
+  const btn = document.getElementById('runBtn');
+  const dot = document.getElementById('sDot');
+  const fill = document.getElementById('progFill');
+  if (on) {
+    btn.disabled = true; btn.classList.add('live');
+    document.getElementById('runIco').innerHTML = '<span class="spin"></span>';
+    document.getElementById('runTxt').textContent = 'Running';
+    dot.className = 's-dot running';
+    document.getElementById('sText').textContent = 'Running';
+    fill.className = 'prog-fill running';
+  } else {
+    btn.disabled = false; btn.classList.remove('live');
+    document.getElementById('runIco').textContent = '▶';
+    document.getElementById('runTxt').textContent = 'Run';
+    dot.className = 's-dot done';
+    document.getElementById('sText').textContent = 'Done';
+    fill.className = 'prog-fill';
+    fill.style.width = '100%';
+    setTimeout(() => { fill.style.width = '0'; fill.className = 'prog-fill'; }, 700);
+  }
+}
+
+function onEvent(ev) {
+  switch(ev.type) {
+    case 'awaiting_clarification':
+      setRunning(false);
+      document.getElementById('sDot').className = 's-dot';
+      document.getElementById('sDot').style.background = '#fbbf24';
+      document.getElementById('sText').textContent = 'Needs input';
+      showClarify(ev.questions || [], ev.clarity_score);
+      break;
+    case 'orchestrator':
+      if (ev.next_agent && ev.next_agent !== 'done') {
+        setAgent(ev.next_agent, 'active');
+        if (ev.next_agent === 'developer' && ev.context_for_agent) {
+          const lbl = document.getElementById('dev-ticket-label');
+          const m = ev.context_for_agent.match(/TK-\d+/);
+          if (m && lbl) lbl.textContent = m[0];
+        }
+      }
+      break;
+    case 'agent_done':
+      onAgentDone(ev);
+      break;
+    case 'pipeline_done':
+      onPipelineDone(ev);
+      break;
+  }
+}
+
+function onAgentDone({ agent, artifact_type, status, detail }) {
+  const ok = status === 'ok';
+  setAgent(agent, ok ? 'done' : 'error', ok ? 'Complete ✓' : 'Failed ✗');
+  const k = agMap[agent] || agent;
+  if (detail) agentData[k] = detail;
+
+  switch(agent) {
+    case 'ba':
+      if (detail) {
+        setBadge('ba', `${detail.user_stories?.length||0} stories`);
+        if (!openAgentKey) openPanel('ba');
+      }
+      break;
+    case 'scrum':
+      if (detail) {
+        setBadge('scrum', `${detail.tickets?.length||0} tickets`);
+        initTicketStrip(detail);
+        if (openAgentKey === 'scrum') renderDpContent('scrum', 'Backlog');
+      }
+      break;
+    case 'developer':
+      if (detail) {
+        codeFiles = detail.files || [];
+        if (activeFile === null) activeFile = 0;
+        setBadge('dev', `${codeFiles.length} files`);
+        updateTicketStrip(detail);
+        if (openAgentKey === 'dev') renderDpContent('dev', 'Files');
+      }
+      break;
+    case 'qa':
+      if (detail) {
+        const p = detail.tests_passed||0, t = detail.tests_run||0;
+        setBadge('qa', t>0 ? `${p}/${t}` : detail.collection_failed ? 'err' : '—');
+        if (openAgentKey === 'qa') renderDpContent('qa', 'Report');
+      }
+      break;
+    case 'git':
+      if (detail) {
+        setBadge('git', detail.tag||'—');
+        if (openAgentKey === 'git') renderDpContent('git', 'Log');
+      }
+      break;
+    case 'github':
+      if (detail) {
+        setBadge('github', detail.pr_number ? `PR #${detail.pr_number}` : 'pushed');
+        if (openAgentKey === 'github') renderDpContent('github', 'Links');
+      }
+      break;
+    case 'devops':
+      if (detail) {
+        setBadge('devops', detail.status||'ready');
+        if (!openAgentKey) openPanel('devops');
+        if (openAgentKey === 'devops') renderDpContent('devops', 'Package');
+      }
+      break;
+  }
+}
+
+function onPipelineDone(ev) {
+  const elapsed = ((Date.now()-t0)/1000).toFixed(1);
+  document.getElementById('sText').textContent = `Done in ${elapsed}s`;
+  document.getElementById('dev-ticket-label').textContent = '';
+}
+
+/* ── TICKET STRIP ─────────────────────────────────────────────────────────── */
+function initTicketStrip(scrumData) {
+  const tickets = scrumData.tickets || [];
+  const strip = document.getElementById('ticketStrip');
+  const dots = document.getElementById('stripDots');
+  strip.classList.remove('hidden');
+  dots.innerHTML = tickets.map(t => `<div class="ts-dot" id="tsd-${t.id}" title="${t.title}"></div>`).join('');
+  document.getElementById('stripCount').textContent = `0/${tickets.length}`;
+  ticketStatuses = {};
+}
+
+function updateTicketStrip(devDetail) {
+  // Called when dev completes a ticket — update from agentData
+}
+
+// Also update on qa done
+const _origOnAgentDone = onAgentDone;
+
+/* ── CLARIFY ──────────────────────────────────────────────────────────────── */
+function showClarify(qs, score) {
+  clarifyQs = qs; clarifyAns = {};
+  document.getElementById('cl-sub').textContent = score ? `Clarity score: ${score}/100 — a few details needed` : 'Please answer these questions';
+  document.getElementById('cl-body').innerHTML = qs.map((q,i) => `
+    <div class="cq-box">
+      <div class="cq-num">Question ${i+1}</div>
+      <div class="cq-q">${q.question}</div>
+      <div class="cq-why">💡 ${q.why_it_matters}</div>
+      <div class="cq-opts">${(q.example_answers||[]).map(a=>`<div class="cq-opt" onclick="pickAns('${q.id}','${a.replace(/'/g,"\\'")}',this)">${a}</div>`).join('')}</div>
+      <input class="cq-input" id="cq-${q.id}" placeholder="Or type your answer…" oninput="clarifyAns['${q.id}']=this.value"/>
+    </div>`).join('');
+  document.getElementById('clarifyOverlay').classList.add('open');
+}
+
+function pickAns(qId, ans, el) {
+  clarifyAns[qId] = ans;
+  el.closest('.cq-opts').querySelectorAll('.cq-opt').forEach(c=>c.classList.remove('sel'));
+  el.classList.add('sel');
+  const inp = document.getElementById('cq-'+qId);
+  if (inp) inp.value = ans;
+}
+
+async function submitClarification() {
+  const answers = {};
+  clarifyQs.forEach(q => {
+    const v = clarifyAns[q.id] || document.getElementById('cq-'+q.id)?.value || '';
+    if (v.trim()) answers[q.id] = v.trim();
+  });
+  if (!Object.keys(answers).length) { alert('Answer at least one question.'); return; }
+  document.getElementById('clarifyOverlay').classList.remove('open');
+  setRunning(true);
+  t0 = Date.now();
+  await doStream(`${API}/clarify/stream`, { project_input: pendingInput, answers });
+}
+
+/* ── RESET ────────────────────────────────────────────────────────────────── */
+function resetUI() {
+  ['ba','scrum','dev','qa','git','github','devops'].forEach(k => {
+    const box = document.getElementById('ag-'+k);
+    const st  = document.getElementById('st-'+k);
+    const b   = document.getElementById('badge-'+k);
+    if (box) box.className = 'agent-card';
+    if (st)  st.textContent = 'Waiting';
+    if (b)   b.textContent = '—';
+  });
+  document.getElementById('dev-ticket-label').textContent = '';
+  document.getElementById('ticketStrip').classList.add('hidden');
+  codeFiles = []; activeFile = null; agentData = {}; ticketStatuses = {};
+  closePanel();
+  drawArrows();
+}
+
+/* ── INIT ─────────────────────────────────────────────────────────────────── */
+document.getElementById('projectInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) startPipeline();
+});
+
+// Example chips via enter key on input
+const EXAMPLES = [
+  'Build a task management REST API with user auth and JWT tokens',
+  'Build a blog platform with posts, comments and user profiles',
+  'Build a real-time chat API with rooms and message history',
+  'Build a note-taking app with tagging and full-text search',
+];
+let exIdx = 0;
+document.getElementById('projectInput').addEventListener('focus', () => {
+  if (!document.getElementById('projectInput').value) {
+    document.getElementById('projectInput').placeholder = EXAMPLES[exIdx++ % EXAMPLES.length];
+  }
+});
+
+setTimeout(() => {
+  drawArrows();
+  // Redraw after fonts load
+  document.fonts.ready.then(drawArrows);
+}, 100);
+</script>
+</body>
+</html>

@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agentic SDLC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:     #080a0f;
+  --surface:#0d1117;
+  --panel:  #111520;
+  --card:   #161c2a;
+  --border: rgba(255,255,255,0.07);
+  --border2:rgba(255,255,255,0.13);
+  --muted:  #2e3650;
+  --dim:    #5a6a8a;
+  --sub:    #8a9bbd;
+  --text:   #d4ddf0;
+  --bright: #eef2ff;
+
+  /* agent accent colors — vivid */
+  --ca-ba:  #7c83fd;
+  --ca-sc:  #c084fc;
+  --ca-dv:  #34d399;
+  --ca-qa:  #fbbf24;
+  --ca-gi:  #f87171;
+  --ca-gh:  #a78bfa;
+  --ca-do:  #38bdf8;
+
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'Inter', sans-serif;
+  --r: 12px;
+}
+
+html, body { height:100%; overflow:hidden; background:var(--bg); color:var(--text); font-family:var(--sans); font-size:13px; line-height:1.5; }
+::-webkit-scrollbar { width:3px; height:3px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--muted); border-radius:2px; }
+
+/* ── APP SHELL ── */
+.shell { display:grid; grid-template-rows:52px 1fr; height:100vh; }
+
+/* ── TOPBAR ── */
+.top {
+  display:flex; align-items:center; gap:12px; padding:0 20px;
+  background:var(--surface); border-bottom:1px solid var(--border);
+  position:relative; z-index:100;
+}
+.wordmark {
+  font-family:var(--mono); font-size:14px; font-weight:600;
+  color:var(--bright); letter-spacing:-0.5px; white-space:nowrap;
+  flex-shrink:0;
+}
+.wordmark b { color:#34d399; font-weight:600; }
+
+.sep { width:1px; height:22px; background:var(--border); flex-shrink:0; }
+
+.input-wrap {
+  flex:1; max-width:620px; display:flex; align-items:center;
+  background:var(--panel); border:1px solid var(--border); border-radius:9px;
+  overflow:hidden; transition:border-color .2s;
+}
+.input-wrap:focus-within { border-color:rgba(52,211,153,.35); }
+.input-wrap input {
+  flex:1; background:none; border:none; outline:none; padding:10px 14px;
+  font-family:var(--sans); font-size:13px; color:var(--text);
+}
+.input-wrap input::placeholder { color:var(--dim); }
+
+.go-btn {
+  padding:7px 18px; background:rgba(52,211,153,.1); border:1px solid rgba(52,211,153,.3);
+  border-radius:8px; color:#34d399; font-family:var(--mono); font-size:11px; font-weight:600;
+  cursor:pointer; transition:all .15s; flex-shrink:0; letter-spacing:.3px;
+  display:flex; align-items:center; gap:7px;
+}
+.go-btn:hover:not(:disabled) { background:rgba(52,211,153,.2); border-color:rgba(52,211,153,.55); }
+.go-btn:disabled { opacity:.35; cursor:not-allowed; }
+.go-btn.busy { color:#fbbf24; background:rgba(251,191,36,.08); border-color:rgba(251,191,36,.3); }
+
+.chip {
+  display:flex; align-items:center; gap:6px; padding:5px 12px;
+  background:var(--panel); border:1px solid var(--border); border-radius:20px;
+  font-family:var(--mono); font-size:10px; color:var(--dim); flex-shrink:0;
+}
+.dot { width:6px; height:6px; border-radius:50%; background:var(--muted); transition:all .3s; }
+.dot.run { background:#34d399; box-shadow:0 0 8px rgba(52,211,153,.6); animation:pulse-dot 1.2s ease-in-out infinite; }
+.dot.ok  { background:#34d399; }
+.dot.err { background:#f87171; }
+.dot.wait{ background:#fbbf24; box-shadow:0 0 8px rgba(251,191,36,.5); }
+@keyframes pulse-dot { 0%,100%{opacity:1;} 50%{opacity:.4;} }
+
+/* ── MAIN ── */
+.main { display:grid; grid-template-columns:1fr 380px; overflow:hidden; }
+.main.nosplit { grid-template-columns:1fr 0; }
+
+/* ── CANVAS ── */
+.cv-wrap {
+  position:relative; overflow:hidden; background:var(--bg);
+  /* subtle grid */
+  background-image:
+    radial-gradient(ellipse 60% 50% at 50% 50%, rgba(52,211,153,.025) 0%, transparent 70%),
+    linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px);
+  background-size: auto, 48px 48px, 48px 48px;
+}
+
+/* progress stripe */
+.pbar { position:absolute; top:0; left:0; right:0; height:2px; z-index:20; }
+.pbar-fill { height:100%; width:0; background:linear-gradient(90deg,#7c83fd,#34d399); transition:width .5s ease; border-radius:1px; }
+.pbar-fill.sweep { animation:sweep 1.8s ease-in-out infinite; }
+@keyframes sweep { 0%{width:8%;margin-left:0} 50%{width:45%;margin-left:25%} 100%{width:6%;margin-left:100%} }
+
+/* ── HORIZONTAL PIPELINE LAYOUT ── */
+.pipe-outer {
+  position:absolute; inset:0;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  padding:32px 48px; gap:0;
+}
+
+/* The main row: all agent chips in one horizontal line */
+.pipe-main {
+  display:flex; align-items:center; gap:0;
+  position:relative;
+}
+
+/* connector line between chips */
+.conn {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  width:48px; flex-shrink:0; position:relative;
+}
+.conn-line {
+  height:2px; width:100%;
+  background: linear-gradient(90deg, var(--c1,var(--muted)) 0%, var(--c2,var(--muted)) 100%);
+  opacity:.25; transition:opacity .4s, background .4s;
+  position:relative; overflow:visible;
+}
+.conn-line.live { opacity:1; }
+.conn-line.live::after {
+  content:'';
+  position:absolute; top:-2px; left:0; width:8px; height:6px;
+  border-radius:3px;
+  background:var(--c2, #34d399);
+  box-shadow:0 0 8px var(--c2, #34d399);
+  animation:travel 1.2s linear infinite;
+}
+@keyframes travel { from{left:0} to{left:calc(100% - 8px)} }
+
+/* arrow head */
+.conn-arrow {
+  position:absolute; right:-1px; top:50%; transform:translateY(-50%);
+  width:0; height:0;
+  border-top:4px solid transparent;
+  border-bottom:4px solid transparent;
+  border-left:5px solid var(--c2, var(--muted));
+  opacity:.3; transition:opacity .4s;
+  z-index:2;
+}
+.conn-line.live + .conn-arrow,
+.conn.active .conn-arrow { opacity:1; }
+
+/* ── AGENT CHIP ── */
+.chip-node {
+  width:88px; flex-shrink:0;
+  background:var(--card); border:1px solid var(--border);
+  border-radius:var(--r); padding:14px 10px 12px;
+  cursor:pointer; user-select:none;
+  transition:transform .2s, border-color .2s, box-shadow .2s;
+  display:flex; flex-direction:column; align-items:center; gap:7px;
+  position:relative;
+}
+.chip-node:hover { transform:translateY(-3px); border-color:var(--border2); }
+
+/* accent top bar */
+.chip-node::before {
+  content:''; position:absolute; top:0; left:10%; width:80%; height:2px;
+  background:var(--nc, #34d399); border-radius:0 0 3px 3px;
+  opacity:0; transition:opacity .3s;
+}
+.chip-node.active::before { opacity:1; }
+.chip-node.done::before  { opacity:.5; }
+
+.chip-node.active {
+  border-color: color-mix(in srgb, var(--nc) 50%, transparent);
+  box-shadow: 0 0 32px color-mix(in srgb, var(--nc) 12%, transparent), 0 4px 20px rgba(0,0,0,.5);
+  transform:translateY(-4px);
+}
+.chip-node.done {
+  border-color: color-mix(in srgb, var(--nc) 22%, transparent);
+}
+.chip-node.err {
+  border-color:rgba(248,113,113,.35);
+  box-shadow:0 0 20px rgba(248,113,113,.08);
+}
+
+.cn-emoji { font-size:20px; line-height:1; }
+.cn-label { font-family:var(--mono); font-size:9px; font-weight:600; letter-spacing:.5px; text-transform:uppercase; color:var(--dim); transition:color .2s; text-align:center; white-space:nowrap; }
+.chip-node.active .cn-label { color: color-mix(in srgb, var(--nc) 80%, var(--text)); }
+.chip-node.done .cn-label  { color: color-mix(in srgb, var(--nc) 60%, var(--text)); }
+
+.cn-status {
+  font-family:var(--mono); font-size:8px; color:var(--muted);
+  text-align:center; min-height:10px; transition:color .2s;
+  display:flex; align-items:center; gap:4px; justify-content:center;
+}
+.chip-node.active .cn-status { color: color-mix(in srgb, var(--nc) 70%, var(--sub)); }
+.chip-node.done  .cn-status  { color:#34d399; }
+.chip-node.err   .cn-status  { color:#f87171; }
+
+.cn-badge {
+  font-family:var(--mono); font-size:8px;
+  background:var(--panel); border:1px solid var(--border); border-radius:4px;
+  padding:1px 6px; color:var(--muted); transition:all .25s;
+  white-space:nowrap; max-width:80px; overflow:hidden; text-overflow:ellipsis;
+  text-align:center;
+}
+.chip-node.done .cn-badge {
+  background: color-mix(in srgb, var(--nc) 10%, var(--panel));
+  border-color: color-mix(in srgb, var(--nc) 22%, transparent);
+  color: color-mix(in srgb, var(--nc) 90%, #fff);
+}
+
+/* ── DEV + QA loop block ── */
+/* These two sit in a special sub-block to show the loop visually */
+.loop-block {
+  display:flex; flex-direction:column; align-items:center;
+  position:relative;
+}
+.loop-nodes {
+  display:flex; align-items:center; gap:0;
+}
+
+/* The curved loop arrow under dev+qa */
+.loop-arc {
+  position:relative; width:100%; height:42px; overflow:visible;
+  display:flex; align-items:flex-start; justify-content:center;
+  flex-shrink:0;
+  pointer-events:none;
+}
+.loop-arc svg { overflow:visible; }
+
+/* loop label */
+.loop-label {
+  position:absolute; bottom:4px; left:50%; transform:translateX(-50%);
+  font-family:var(--mono); font-size:9px; color:var(--ca-qa);
+  letter-spacing:.3px; white-space:nowrap; opacity:.6;
+  transition:opacity .3s;
+}
+.loop-label.lit { opacity:1; }
+
+/* mini spinner */
+.spin { display:inline-block; width:7px; height:7px; border:1.5px solid currentColor; border-top-color:transparent; border-radius:50%; animation:rot .7s linear infinite; }
+@keyframes rot { to{transform:rotate(360deg)} }
+
+/* ── TICKET STRIP ── */
+.tk-strip {
+  margin-top:36px; display:flex; align-items:center; gap:10px;
+  background:rgba(13,17,23,.8); border:1px solid var(--border);
+  border-radius:20px; padding:7px 16px;
+  font-family:var(--mono); font-size:9px; color:var(--dim);
+  opacity:0; transition:opacity .4s; pointer-events:none;
+  backdrop-filter:blur(12px);
+}
+.tk-strip.show { opacity:1; pointer-events:auto; }
+.tk-dots { display:flex; gap:4px; flex-wrap:wrap; max-width:260px; }
+.td { width:6px; height:6px; border-radius:50%; background:var(--border2); transition:all .3s; }
+.td.active { background:var(--ca-qa); box-shadow:0 0 6px rgba(251,191,36,.5); animation:pulse-dot 1.2s ease-in-out infinite; }
+.td.pass { background:#34d399; box-shadow:0 0 4px rgba(52,211,153,.4); }
+.td.fail { background:#f87171; opacity:.5; }
+
+/* ── LOG FEED ── */
+.log-feed {
+  position:absolute; bottom:18px; left:24px;
+  width:260px; display:flex; flex-direction:column; gap:1px;
+  z-index:10; pointer-events:none;
+}
+.log-line {
+  font-family:var(--mono); font-size:9px; color:var(--muted);
+  padding:1px 0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  opacity:0; animation:log-appear .25s ease forwards;
+}
+.log-line.ok   { color:rgba(52,211,153,.7); }
+.log-line.err  { color:rgba(248,113,113,.7); }
+.log-line.warn { color:rgba(251,191,36,.7); }
+.log-line.info { color:var(--sub); }
+@keyframes log-appear { from{opacity:0;transform:translateX(-4px)} to{opacity:1;transform:none} }
+
+/* ── SIDE PANEL ── */
+.side {
+  background:var(--surface); border-left:1px solid var(--border);
+  display:flex; flex-direction:column; overflow:hidden;
+}
+.main.nosplit .side { display:none; }
+
+.ph-wrap {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  height:100%; gap:10px; opacity:.25; text-align:center; padding:24px;
+}
+.ph-wrap .ico { font-size:32px; }
+.ph-wrap .t { font-size:14px; font-weight:600; color:var(--sub); }
+.ph-wrap .s { font-size:11px; color:var(--dim); }
+
+.pnl-head {
+  display:flex; align-items:center; gap:10px; padding:14px 18px;
+  border-bottom:1px solid var(--border); flex-shrink:0;
+}
+.pnl-ico {
+  width:36px; height:36px; border-radius:10px; flex-shrink:0;
+  display:grid; place-items:center; font-size:17px;
+  background: color-mix(in srgb, var(--nc,#7c83fd) 12%, var(--card));
+  border:1px solid color-mix(in srgb, var(--nc,#7c83fd) 20%, transparent);
+}
+.pnl-name { flex:1; font-size:13px; font-weight:600; }
+.pnl-st { font-family:var(--mono); font-size:9px; color:var(--dim); margin-top:1px; }
+.pnl-x {
+  width:26px; height:26px; display:grid; place-items:center;
+  background:var(--panel); border:1px solid var(--border); border-radius:7px;
+  color:var(--dim); cursor:pointer; font-size:15px; transition:all .15s;
+}
+.pnl-x:hover { color:var(--text); border-color:var(--border2); }
+
+.pnl-tabs {
+  display:flex; gap:2px; padding:7px 14px;
+  border-bottom:1px solid var(--border); overflow-x:auto; flex-shrink:0;
+}
+.pnl-tabs::-webkit-scrollbar { height:0; }
+.tab {
+  font-size:11px; font-weight:500; color:var(--dim); padding:4px 10px;
+  border-radius:6px; cursor:pointer; white-space:nowrap; transition:all .12s;
+}
+.tab:hover { color:var(--sub); background:var(--panel); }
+.tab.on { color:var(--text); background:var(--panel); border:1px solid var(--border); }
+
+.pnl-body { flex:1; overflow-y:auto; padding:18px; }
+
+/* ── PANEL CONTENT ── */
+.section-lbl {
+  font-family:var(--mono); font-size:8.5px; letter-spacing:1.5px; text-transform:uppercase;
+  color:var(--muted); margin:16px 0 9px; display:flex; align-items:center; gap:8px;
+}
+.section-lbl::after { content:''; flex:1; height:1px; background:var(--border); }
+
+.stat-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(72px,1fr)); gap:7px; margin-bottom:14px; }
+.stat { background:var(--panel); border:1px solid var(--border); border-radius:9px; padding:10px 12px; }
+.stat-v { font-family:var(--mono); font-size:20px; font-weight:700; line-height:1; margin-bottom:3px; }
+.stat-k { font-size:9.5px; color:var(--dim); }
+
+.story-card { background:var(--panel); border:1px solid var(--border); border-radius:9px; padding:11px 13px; margin-bottom:7px; }
+.story-head { display:flex; align-items:flex-start; gap:7px; margin-bottom:7px; }
+.sid { font-family:var(--mono); font-size:8.5px; padding:2px 5px; border-radius:4px; background:rgba(124,131,253,.1); border:1px solid rgba(124,131,253,.2); color:var(--ca-ba); flex-shrink:0; }
+.s-title { font-size:11px; font-weight:500; line-height:1.45; }
+.ac-item { font-size:10px; color:var(--sub); padding:2px 0 2px 10px; border-left:1px solid var(--border2); margin-bottom:2px; }
+
+.tk-row { display:flex; align-items:center; gap:7px; padding:6px 9px; background:var(--panel); border:1px solid var(--border); border-radius:7px; margin-bottom:4px; }
+.tk-id { font-family:var(--mono); font-size:8.5px; padding:1px 5px; border-radius:3px; background:rgba(167,139,250,.08); border:1px solid rgba(167,139,250,.18); color:var(--ca-gh); flex-shrink:0; }
+.tk-name { flex:1; font-size:10.5px; }
+.tk-pts { font-family:var(--mono); font-size:8.5px; color:var(--dim); }
+
+.sprint-blk { background:var(--panel); border:1px solid var(--border); border-radius:9px; padding:11px 13px; margin-bottom:7px; }
+.sp-head { display:flex; justify-content:space-between; margin-bottom:4px; font-size:11.5px; font-weight:600; }
+.sp-goal { font-size:10px; color:var(--sub); margin-bottom:7px; line-height:1.55; }
+.sp-chips { display:flex; flex-wrap:wrap; gap:3px; }
+.sp-ch { font-family:var(--mono); font-size:8.5px; padding:2px 6px; border-radius:3px; background:rgba(167,139,250,.07); border:1px solid rgba(167,139,250,.15); color:var(--ca-gh); }
+
+.file-list { display:flex; flex-direction:column; gap:2px; margin-bottom:10px; }
+.f-item { display:flex; align-items:center; gap:7px; padding:5px 9px; border-radius:7px; cursor:pointer; transition:background .1s; }
+.f-item:hover { background:var(--panel); }
+.f-item.on { background:rgba(52,211,153,.06); border:1px solid rgba(52,211,153,.14); }
+.f-ico { font-size:10px; flex-shrink:0; }
+.f-name { font-family:var(--mono); font-size:9.5px; color:var(--sub); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.f-lines { font-family:var(--mono); font-size:8.5px; color:var(--muted); }
+.f-item.on .f-name { color:#34d399; }
+
+.code-box { background:var(--panel); border:1px solid var(--border); border-radius:9px; overflow:hidden; }
+.code-hd { display:flex; align-items:center; justify-content:space-between; padding:7px 11px; border-bottom:1px solid var(--border); }
+.code-fn { font-family:var(--mono); font-size:9.5px; color:var(--sub); }
+.code-cp { background:none; border:1px solid var(--border); border-radius:4px; color:var(--dim); font-family:var(--mono); font-size:8.5px; padding:2px 7px; cursor:pointer; transition:color .1s; }
+.code-cp:hover { color:var(--text); }
+pre.code-pre { font-family:var(--mono); font-size:9px; line-height:1.8; padding:11px 13px; color:var(--sub); white-space:pre-wrap; word-break:break-all; max-height:340px; overflow-y:auto; }
+
+.qa-hero { display:flex; align-items:center; gap:14px; background:var(--panel); border:1px solid var(--border); border-radius:9px; padding:13px 15px; margin-bottom:13px; }
+.qa-v { font-family:var(--mono); font-size:30px; font-weight:700; line-height:1; }
+.qa-m { font-size:10.5px; color:var(--sub); line-height:2; }
+
+.fail-box { background:rgba(248,113,113,.04); border:1px solid rgba(248,113,113,.15); border-radius:7px; padding:9px 11px; margin-bottom:7px; }
+.fail-box pre { font-family:var(--mono); font-size:8.5px; color:var(--sub); white-space:pre-wrap; word-break:break-all; max-height:160px; overflow-y:auto; line-height:1.65; }
+
+.rec-card { background:var(--panel); border:1px solid var(--border); border-radius:7px; padding:8px 11px; font-size:10.5px; color:var(--sub); margin-bottom:5px; }
+.commit-item { display:flex; gap:9px; padding:6px 0; border-bottom:1px solid var(--border); }
+.commit-item:last-child { border-bottom:none; }
+.c-dot { width:7px; height:7px; border-radius:50%; background:var(--ca-gi); margin-top:4px; flex-shrink:0; }
+.c-msg { font-size:10.5px; font-weight:500; margin-bottom:2px; }
+.c-meta { font-family:var(--mono); font-size:8.5px; color:var(--dim); }
+
+.gh-link { display:flex; align-items:center; gap:9px; padding:9px 13px; background:var(--panel); border:1px solid var(--border); border-radius:8px; font-size:10.5px; color:var(--text); text-decoration:none; margin-bottom:5px; transition:border-color .15s; }
+.gh-link:hover { border-color:var(--border2); }
+.gh-link code { font-family:var(--mono); font-size:9.5px; color:#34d399; }
+
+.cmd-row { display:flex; gap:9px; align-items:baseline; background:var(--panel); border:1px solid var(--border); border-radius:7px; padding:7px 11px; margin-bottom:4px; }
+.cmd-lbl { font-family:var(--mono); font-size:8.5px; color:var(--dim); flex-shrink:0; }
+.cmd-val { font-family:var(--mono); font-size:9.5px; color:#34d399; word-break:break-all; }
+
+.devf-row { display:flex; align-items:center; gap:7px; padding:5px 9px; background:var(--panel); border:1px solid var(--border); border-radius:6px; margin-bottom:3px; font-family:var(--mono); font-size:9.5px; color:var(--sub); }
+
+/* color helpers */
+.cl { color:#34d399; } .cy { color:var(--ca-qa); } .cr { color:#f87171; }
+.cv { color:var(--ca-gh); } .cb { color:var(--ca-ba); }
+
+/* ── CLARIFY OVERLAY ── */
+.ov { display:none; position:fixed; inset:0; background:rgba(8,10,15,.9); z-index:500; backdrop-filter:blur(10px); align-items:center; justify-content:center; padding:20px; }
+.ov.open { display:flex; }
+.ov-box { background:var(--surface); border:1px solid var(--border2); border-radius:16px; width:100%; max-width:520px; max-height:82vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 60px 120px rgba(0,0,0,.7),0 0 0 1px rgba(124,131,253,.1); }
+.ov-head { display:flex; align-items:center; gap:11px; padding:16px 20px; border-bottom:1px solid var(--border); flex-shrink:0; }
+.ov-icon { width:34px; height:34px; background:rgba(251,191,36,.1); border:1px solid rgba(251,191,36,.22); border-radius:8px; display:grid; place-items:center; font-size:16px; flex-shrink:0; }
+.ov-title { font-size:13px; font-weight:600; }
+.ov-sub { font-family:var(--mono); font-size:9.5px; color:var(--dim); margin-top:1px; }
+.ov-body { flex:1; overflow-y:auto; padding:14px 20px; }
+.cq { background:var(--panel); border:1px solid var(--border); border-radius:9px; padding:13px; margin-bottom:9px; }
+.cq-n { font-family:var(--mono); font-size:8.5px; color:var(--dim); letter-spacing:1px; text-transform:uppercase; margin-bottom:3px; }
+.cq-t { font-size:11.5px; font-weight:600; margin-bottom:2px; line-height:1.4; }
+.cq-w { font-size:9.5px; color:var(--dim); margin-bottom:9px; line-height:1.55; }
+.cq-opts { display:flex; flex-wrap:wrap; gap:4px; margin-bottom:7px; }
+.cq-opt { font-size:10.5px; padding:3px 9px; background:var(--surface); border:1px solid var(--border); border-radius:5px; color:var(--sub); cursor:pointer; transition:all .12s; }
+.cq-opt:hover { border-color:var(--border2); color:var(--text); }
+.cq-opt.sel { border-color:rgba(52,211,153,.4); color:#34d399; background:rgba(52,211,153,.06); }
+.cq-inp { width:100%; background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:7px 11px; color:var(--text); font-family:var(--sans); font-size:10.5px; outline:none; transition:border-color .15s; }
+.cq-inp:focus { border-color:rgba(52,211,153,.3); }
+.ov-foot { padding:13px 20px; border-top:1px solid var(--border); flex-shrink:0; }
+.ov-sub-btn { width:100%; padding:10px; background:rgba(52,211,153,.08); border:1px solid rgba(52,211,153,.28); border-radius:8px; color:#34d399; font-family:var(--sans); font-size:11.5px; font-weight:600; cursor:pointer; transition:background .15s; }
+.ov-sub-btn:hover { background:rgba(52,211,153,.16); }
+</style>
+</head>
+<body>
+<div class="shell">
+
+<!-- TOP BAR -->
+<div class="top">
+  <div class="wordmark">Agentic <b>SDLC</b></div>
+  <div class="sep"></div>
+  <div class="input-wrap">
+    <input id="inp" type="text" placeholder="What should we build? e.g. REST API with JWT auth…" />
+  </div>
+  <button class="go-btn" id="goBtn" onclick="run()">
+    <span id="btn-ico">▶</span>
+    <span id="btn-lbl">Run</span>
+  </button>
+  <div class="chip">
+    <div class="dot" id="led"></div>
+    <span id="led-txt">Ready</span>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main nosplit" id="main">
+
+  <!-- CANVAS -->
+  <div class="cv-wrap" id="cvwrap">
+    <div class="pbar"><div class="pbar-fill" id="pbar"></div></div>
+
+    <div class="pipe-outer">
+
+      <!-- horizontal pipeline: BA → SC → [DEV ↔ QA] → GIT → GH → DO -->
+      <div class="pipe-main" id="pipe-main">
+
+        <!-- BA -->
+        <div class="chip-node" id="nd-ba" style="--nc:var(--ca-ba)" onclick="openPanel('ba')">
+          <div class="cn-emoji">🧠</div>
+          <div class="cn-label">BA</div>
+          <div class="cn-status" id="st-ba">idle</div>
+          <div class="cn-badge" id="bg-ba">—</div>
+        </div>
+
+        <!-- BA → SC -->
+        <div class="conn" id="cn-ba-sc">
+          <div class="conn-line" id="cl-ba-sc" style="--c1:var(--ca-ba);--c2:var(--ca-sc)"></div>
+          <div class="conn-arrow" style="border-left-color:var(--ca-sc)"></div>
+        </div>
+
+        <!-- SC -->
+        <div class="chip-node" id="nd-sc" style="--nc:var(--ca-sc)" onclick="openPanel('sc')">
+          <div class="cn-emoji">📋</div>
+          <div class="cn-label">Scrum</div>
+          <div class="cn-status" id="st-sc">idle</div>
+          <div class="cn-badge" id="bg-sc">—</div>
+        </div>
+
+        <!-- SC → DEV/QA loop block -->
+        <div class="conn" id="cn-sc-dv">
+          <div class="conn-line" id="cl-sc-dv" style="--c1:var(--ca-sc);--c2:var(--ca-dv)"></div>
+          <div class="conn-arrow" style="border-left-color:var(--ca-dv)"></div>
+        </div>
+
+        <!-- DEV + QA loop block -->
+        <div class="loop-block" id="loop-block">
+          <div class="loop-nodes">
+            <!-- DEV -->
+            <div class="chip-node" id="nd-dv" style="--nc:var(--ca-dv)" onclick="openPanel('dv')">
+              <div class="cn-emoji">💻</div>
+              <div class="cn-label">Dev</div>
+              <div class="cn-status" id="st-dv">idle</div>
+              <div class="cn-badge" id="bg-dv">—</div>
+            </div>
+
+            <!-- DEV → QA -->
+            <div class="conn">
+              <div class="conn-line" id="cl-dv-qa" style="--c1:var(--ca-dv);--c2:var(--ca-qa)"></div>
+              <div class="conn-arrow" style="border-left-color:var(--ca-qa)"></div>
+            </div>
+
+            <!-- QA -->
+            <div class="chip-node" id="nd-qa" style="--nc:var(--ca-qa)" onclick="openPanel('qa')">
+              <div class="cn-emoji">🧪</div>
+              <div class="cn-label">QA</div>
+              <div class="cn-status" id="st-qa">idle</div>
+              <div class="cn-badge" id="bg-qa">—</div>
+            </div>
+          </div>
+
+          <!-- retry arc SVG -->
+          <div class="loop-arc">
+            <svg id="loop-svg" width="228" height="42" viewBox="0 0 228 42">
+              <defs>
+                <marker id="arr-retry" viewBox="0 0 10 10" refX="1" refY="5"
+                  markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                  <path d="M9 2L2 5L9 8" fill="none" stroke="#fbbf24" stroke-width="1.8"
+                    stroke-linecap="round" stroke-linejoin="round"/>
+                </marker>
+              </defs>
+              <!-- curved path from QA bottom back to Dev bottom -->
+              <path id="loop-path"
+                d="M 204 4 C 204 32, 24 32, 24 4"
+                fill="none" stroke="#fbbf24" stroke-width="1.8"
+                stroke-dasharray="5 5"
+                marker-end="url(#arr-retry)"
+                opacity="0.22" id="loop-arc-path"
+              />
+              <!-- animated particle along path -->
+              <circle r="3" fill="#fbbf24" opacity="0" id="loop-particle">
+                <animateMotion id="loop-anim" dur="1.6s" repeatCount="indefinite" begin="indefinite">
+                  <mpath href="#loop-path"/>
+                </animateMotion>
+              </circle>
+            </svg>
+            <div class="loop-label" id="loop-lbl">↺ retry on fail</div>
+          </div>
+        </div>
+
+        <!-- QA → GIT -->
+        <div class="conn" id="cn-qa-gi">
+          <div class="conn-line" id="cl-qa-gi" style="--c1:var(--ca-qa);--c2:var(--ca-gi)"></div>
+          <div class="conn-arrow" style="border-left-color:var(--ca-gi)"></div>
+        </div>
+
+        <!-- GIT -->
+        <div class="chip-node" id="nd-gi" style="--nc:var(--ca-gi)" onclick="openPanel('gi')">
+          <div class="cn-emoji">🔀</div>
+          <div class="cn-label">Git</div>
+          <div class="cn-status" id="st-gi">idle</div>
+          <div class="cn-badge" id="bg-gi">—</div>
+        </div>
+
+        <!-- GIT → GH -->
+        <div class="conn">
+          <div class="conn-line" id="cl-gi-gh" style="--c1:var(--ca-gi);--c2:var(--ca-gh)"></div>
+          <div class="conn-arrow" style="border-left-color:var(--ca-gh)"></div>
+        </div>
+
+        <!-- GH -->
+        <div class="chip-node" id="nd-gh" style="--nc:var(--ca-gh)" onclick="openPanel('gh')">
+          <div class="cn-emoji">⬆</div>
+          <div class="cn-label">GitHub</div>
+          <div class="cn-status" id="st-gh">idle</div>
+          <div class="cn-badge" id="bg-gh">—</div>
+        </div>
+
+        <!-- GH → DO -->
+        <div class="conn">
+          <div class="conn-line" id="cl-gh-do" style="--c1:var(--ca-gh);--c2:var(--ca-do)"></div>
+          <div class="conn-arrow" style="border-left-color:var(--ca-do)"></div>
+        </div>
+
+        <!-- DO -->
+        <div class="chip-node" id="nd-do" style="--nc:var(--ca-do)" onclick="openPanel('do')">
+          <div class="cn-emoji">🚀</div>
+          <div class="cn-label">DevOps</div>
+          <div class="cn-status" id="st-do">idle</div>
+          <div class="cn-badge" id="bg-do">—</div>
+        </div>
+      </div>
+
+      <!-- ticket progress strip -->
+      <div class="tk-strip" id="tk-strip">
+        <span id="tk-sprint">Sprint 1</span>
+        <div class="tk-dots" id="tk-dots"></div>
+        <span id="tk-count">—</span>
+      </div>
+    </div>
+
+    <!-- log feed -->
+    <div class="log-feed" id="logfeed"></div>
+  </div>
+
+  <!-- SIDE PANEL -->
+  <div class="side" id="side">
+    <div class="pnl-head">
+      <div class="pnl-ico" id="pi-ico" style="--nc:var(--ca-ba)">—</div>
+      <div style="flex:1;min-width:0">
+        <div class="pnl-name" id="pi-name">—</div>
+        <div class="pnl-st"   id="pi-st">—</div>
+      </div>
+      <div class="pnl-x" onclick="closePanel()">×</div>
+    </div>
+    <div class="pnl-tabs" id="pi-tabs"></div>
+    <div class="pnl-body" id="pi-body">
+      <div class="ph-wrap">
+        <div class="ico">🔬</div>
+        <div class="t">Select an agent</div>
+        <div class="s">Click any node to inspect its output</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- CLARIFY OVERLAY -->
+<div class="ov" id="ov">
+  <div class="ov-box">
+    <div class="ov-head">
+      <div class="ov-icon">⚡</div>
+      <div>
+        <div class="ov-title">A few quick questions</div>
+        <div class="ov-sub" id="ov-sub">Helps us build exactly what you need</div>
+      </div>
+    </div>
+    <div class="ov-body" id="ov-body"></div>
+    <div class="ov-foot">
+      <button class="ov-sub-btn" onclick="submitClarify()">Submit &amp; launch pipeline →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'http://localhost:8000';
+
+// ── state ──────────────────────────────────────────────────────────────────────
+let running = false, panelKey = null, files = [], activeFile = null;
+let clarQs = [], clarAns = {}, pendingInput = '', t0 = 0;
+let agData = {}, doneCount = 0, totalTks = 0, loopActive = false;
+
+// agent key map
+const AMAP = { developer:'dv', ba:'ba', scrum:'sc', qa:'qa', git:'gi', github:'gh', devops:'do' };
+const META = {
+  ba: { ico:'🧠', name:'Business Analyst', nc:'var(--ca-ba)', tabs:['Spec'] },
+  sc: { ico:'📋', name:'Scrum Master',     nc:'var(--ca-sc)', tabs:['Backlog','Sprints'] },
+  dv: { ico:'💻', name:'Developer',        nc:'var(--ca-dv)', tabs:['Files','Viewer'] },
+  qa: { ico:'🧪', name:'QA Engineer',      nc:'var(--ca-qa)', tabs:['Report'] },
+  gi: { ico:'🔀', name:'Git',              nc:'var(--ca-gi)', tabs:['Log'] },
+  gh: { ico:'⬆',  name:'GitHub',          nc:'var(--ca-gh)', tabs:['Links'] },
+  do: { ico:'🚀', name:'DevOps',           nc:'var(--ca-do)', tabs:['Package'] },
+};
+
+// ── connector live state ───────────────────────────────────────────────────────
+const FLOW = ['cl-ba-sc','cl-sc-dv','cl-dv-qa','cl-qa-gi','cl-gi-gh','cl-gh-do'];
+
+function setConnLive(lineId, on) {
+  const el = document.getElementById(lineId);
+  if (el) el.classList.toggle('live', on);
+}
+function allConnsOff() { FLOW.forEach(id => setConnLive(id, false)); }
+
+// ── loop arc ───────────────────────────────────────────────────────────────────
+function setLoopActive(on) {
+  loopActive = on;
+  const arc = document.getElementById('loop-arc-path');
+  const particle = document.getElementById('loop-particle');
+  const lbl = document.getElementById('loop-lbl');
+  const anim = document.getElementById('loop-anim');
+  if (!arc) return;
+  if (on) {
+    arc.setAttribute('opacity','0.85');
+    arc.setAttribute('stroke-dasharray','5 5');
+    particle.setAttribute('opacity','0.9');
+    anim.beginElement();
+    lbl.classList.add('lit');
+  } else {
+    arc.setAttribute('opacity','0.2');
+    particle.setAttribute('opacity','0');
+    lbl.classList.remove('lit');
+  }
+}
+
+// ── node state ─────────────────────────────────────────────────────────────────
+function setNode(agent, state, msg) {
+  const k = AMAP[agent] || agent;
+  const nd = document.getElementById('nd-' + k);
+  const st = document.getElementById('st-' + k);
+  if (!nd) return;
+
+  nd.className = 'chip-node ' + state;
+  nd.style.setProperty('--nc', META[k]?.nc || '#34d399');
+
+  if (state === 'active') {
+    st.innerHTML = `<span class="spin"></span> ${msg || 'running'}`;
+    // light up incoming connector
+    const connMap = { ba:'', sc:'cl-ba-sc', dv:'cl-sc-dv', qa:'cl-dv-qa', gi:'cl-qa-gi', gh:'cl-gi-gh', do:'cl-gh-do' };
+    if (connMap[k]) setConnLive(connMap[k], true);
+  } else {
+    st.textContent = msg || (state === 'done' ? 'done' : state === 'err' ? 'failed' : 'idle');
+    // dim connector if done/err
+    const connMap = { sc:'cl-ba-sc', dv:'cl-sc-dv', qa:'cl-dv-qa', gi:'cl-qa-gi', gh:'cl-gi-gh', do:'cl-gh-do' };
+    if (connMap[k] && (state === 'done' || state === 'err')) setConnLive(connMap[k], false);
+  }
+
+  if (panelKey === k) document.getElementById('pi-st').textContent = st.textContent || '';
+}
+
+function setBadge(agent, val) {
+  const k = AMAP[agent] || agent;
+  const b = document.getElementById('bg-' + k);
+  if (b) b.textContent = val;
+}
+
+// ── panel ──────────────────────────────────────────────────────────────────────
+function openPanel(k) {
+  panelKey = k;
+  const m = META[k]; if (!m) return;
+  document.getElementById('main').classList.remove('nosplit');
+  document.getElementById('pi-ico').textContent = m.ico;
+  document.getElementById('pi-ico').style.setProperty('--nc', m.nc);
+  document.getElementById('pi-name').textContent = m.name;
+  document.getElementById('pi-st').textContent = document.getElementById('st-' + k)?.textContent || '—';
+  document.getElementById('pi-tabs').innerHTML =
+    m.tabs.map((t,i) => `<div class="tab${i===0?' on':''}" onclick="switchTab('${k}','${t}',this)">${t}</div>`).join('');
+  renderPanel(k, m.tabs[0]);
+}
+
+function closePanel() {
+  document.getElementById('main').classList.add('nosplit');
+  panelKey = null;
+}
+
+function switchTab(k, tab, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
+  el.classList.add('on');
+  renderPanel(k, tab);
+}
+
+function renderPanel(k, tab) {
+  const body = document.getElementById('pi-body');
+  const d = agData[k];
+  if (!d) {
+    body.innerHTML = `<div class="ph-wrap"><div class="ico">${META[k]?.ico||'⏳'}</div><div class="t">Not yet run</div><div class="s">Waiting for this agent.</div></div>`;
+    return;
+  }
+  let h = '';
+
+  if (k === 'ba') {
+    h = `<div style="font-size:17px;font-weight:700;margin-bottom:5px;line-height:1.3">${d.project_title||'Project'}</div>
+    <div style="font-size:10.5px;color:var(--sub);line-height:1.75;margin-bottom:16px">${d.summary||''}</div>
+    <div class="stat-grid">
+      <div class="stat"><div class="stat-v cb">${(d.user_stories||[]).length}</div><div class="stat-k">Stories</div></div>
+      <div class="stat"><div class="stat-v cv">${(d.edge_cases||[]).length}</div><div class="stat-k">Edge cases</div></div>
+    </div>
+    <div class="section-lbl">User Stories</div>
+    ${(d.user_stories||[]).map(u=>`<div class="story-card">
+      <div class="story-head"><span class="sid">${u.id}</span>
+      <span class="s-title">As a <strong style="color:var(--ca-ba)">${u.role}</strong>, I want to ${u.goal}</span></div>
+      ${(u.acceptance_criteria||[]).map(c=>`<div class="ac-item">✓ ${c}</div>`).join('')}
+    </div>`).join('')}
+    ${d.edge_cases?.length?`<div class="section-lbl">Edge Cases</div>${d.edge_cases.map(e=>`<div class="rec-card">⚠ ${e}</div>`).join('')}`:''}`;
+  }
+  else if (k === 'sc') {
+    if (tab === 'Backlog') {
+      const total = (d.tickets||[]).reduce((s,t)=>s+(t.story_points||0),0);
+      h = `<div class="stat-grid">
+        <div class="stat"><div class="stat-v cv">${(d.tickets||[]).length}</div><div class="stat-k">Tickets</div></div>
+        <div class="stat"><div class="stat-v cb">${total}</div><div class="stat-k">Points</div></div>
+      </div><div class="section-lbl">Backlog</div>
+      ${(d.tickets||[]).map(t=>`<div class="tk-row"><span class="tk-id">${t.id}</span><span class="tk-name">${t.title}</span><span class="tk-pts">${t.story_points}pt</span></div>`).join('')}`;
+    } else {
+      h = (d.sprints||[]).map(sp=>`<div class="sprint-blk">
+        <div class="sp-head"><span>Sprint ${sp.sprint_number}</span><span style="font-family:var(--mono);font-size:9.5px;color:var(--dim)">${sp.total_points||0}pt</span></div>
+        <div class="sp-goal">${sp.goal||''}</div>
+        <div class="sp-chips">${(sp.ticket_ids||[]).map(id=>`<span class="sp-ch">${id}</span>`).join('')}</div>
+      </div>`).join('');
+    }
+  }
+  else if (k === 'dv') {
+    if (!files.length) { body.innerHTML='<div class="ph-wrap"><div class="ico">💻</div><div class="t">No files yet</div></div>'; return; }
+    if (tab === 'Files') {
+      h = '<div class="file-list">' + files.map((f,i)=>{
+        const ico = f.path.endsWith('.py')?'🐍':f.path.endsWith('.yml')||f.path.endsWith('.yaml')?'⚙':f.path.includes('test')?'🧪':f.path.endsWith('.md')?'📝':f.path.endsWith('.json')?'📋':'📄';
+        return `<div class="f-item${activeFile===i?' on':''}" onclick="viewFile(${i})">
+          <span class="f-ico">${ico}</span><span class="f-name">${f.path}</span>
+          <span class="f-lines">${(f.content||'').split('\n').length}L</span></div>`;
+      }).join('') + '</div>';
+    } else {
+      const f = files[activeFile||0];
+      if (!f) { body.innerHTML='<div class="ph-wrap"><div class="t">Pick a file</div></div>'; return; }
+      let content = f.content||'';
+      if (content.includes('\\n') && !content.includes('\n')) content = content.replace(/\\n/g,'\n').replace(/\\t/g,'\t');
+      h = `<div class="code-box"><div class="code-hd"><span class="code-fn">${f.path}</span><button class="code-cp" onclick="copyCode()">Copy</button></div>
+        <pre class="code-pre">${content.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre></div>`;
+    }
+  }
+  else if (k === 'qa') {
+    const pass = d.overall_status === 'pass';
+    h = `<div class="qa-hero">
+      <div class="qa-v ${pass?'cl':'cr'}">${pass?'PASS':'FAIL'}</div>
+      <div class="qa-m">${d.collection_failed?`<div style="color:#f87171;font-weight:600">⛔ Collection failed</div>`:`<div>Run: <strong>${d.tests_run||0}</strong></div><div>Passed: <strong class="cl">${d.tests_passed||0}</strong></div><div>Failed: <strong class="cr">${d.tests_failed||0}</strong></div>`}
+      </div></div>
+      ${d.failure_summary?`<div class="section-lbl">Output</div><div class="fail-box"><pre>${d.failure_summary.slice(0,1200)}</pre></div>`:''}
+      ${(d.recommendations||[]).length?`<div class="section-lbl">Recommendations</div>${d.recommendations.map(r=>`<div class="rec-card">${r}</div>`).join('')}`:''}`;
+  }
+  else if (k === 'gi') {
+    h = `<div class="stat-grid">
+      <div class="stat"><div class="stat-v" style="color:var(--ca-gi);font-size:15px">${d.tag||'—'}</div><div class="stat-k">Tag</div></div>
+      <div class="stat"><div class="stat-v cl">${d.file_count||0}</div><div class="stat-k">Files</div></div>
+    </div><div class="section-lbl">Commits</div>
+    <div style="background:var(--panel);border:1px solid var(--border);border-radius:9px;padding:11px 13px">
+      ${(d.commits||[]).map(c=>`<div class="commit-item"><div class="c-dot"></div><div><div class="c-msg">${c.message}</div><div class="c-meta">${(c.tickets||[]).join(' · ')||'initial'}</div></div></div>`).join('')}
+    </div>
+    ${d.git_log?`<div class="section-lbl">git log</div><div style="background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:9px 11px">${d.git_log.split('\n').filter(Boolean).map(l=>{const p=l.trim().split(' ');return`<div style="display:flex;gap:7px;padding:2px 0;font-family:var(--mono);font-size:8.5px"><span style="color:var(--ca-gi)">${p[0]}</span><span style="color:var(--dim)">${p.slice(1).join(' ')}</span></div>`;}).join('')}</div>`:''}`;
+  }
+  else if (k === 'gh') {
+    h = `<div style="margin-bottom:13px">
+      ${d.pr_url?`<a href="${d.pr_url}" target="_blank" class="gh-link">🔗 Pull Request <code>#${d.pr_number||''}</code></a>`:''}
+      <a href="${d.branch_url||d.repo_url||'#'}" target="_blank" class="gh-link">🌿 Branch <code>${d.branch||'—'}</code></a>
+      ${d.repo_url?`<a href="${d.repo_url}" target="_blank" class="gh-link">📁 Repository →</a>`:''}
+    </div>
+    <div class="stat-grid"><div class="stat"><div class="stat-v cv">${d.file_count||0}</div><div class="stat-k">Pushed</div></div></div>`;
+  }
+  else if (k === 'do') {
+    h = `<div class="stat-grid">
+      <div class="stat"><div class="stat-v ${d.status==='ready'?'cl':'cy'}">${d.status||'—'}</div><div class="stat-k">Status</div></div>
+      <div class="stat"><div class="stat-v ${d.qa_status==='pass'?'cl':'cr'}">${d.qa_status||'—'}</div><div class="stat-k">QA</div></div>
+    </div>
+    ${(d.deployment_files||[]).length?`<div class="section-lbl">Generated Files</div>${d.deployment_files.map(f=>`<div class="devf-row"><span class="cl">✓</span>${f}</div>`).join('')}`:''}
+    ${Object.keys(d.run_commands||{}).length?`<div class="section-lbl">Commands</div>${Object.entries(d.run_commands||{}).map(([k,v])=>`<div class="cmd-row"><span class="cmd-lbl">${k}</span><span class="cmd-val">$ ${v}</span></div>`).join('')}`:''}
+    ${d.generated_files?.Dockerfile?`<div class="section-lbl">Dockerfile</div><div class="code-box"><pre class="code-pre">${d.generated_files.Dockerfile.replace(/</g,'&lt;')}</pre></div>`:''}`;
+  }
+  body.innerHTML = h;
+}
+
+function viewFile(i) {
+  activeFile = i;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.textContent === 'Viewer'));
+  renderPanel('dv', 'Viewer');
+}
+
+function copyCode() {
+  if (!files[activeFile||0]) return;
+  let c = files[activeFile||0].content || '';
+  if (c.includes('\\n') && !c.includes('\n')) c = c.replace(/\\n/g,'\n').replace(/\\t/g,'\t');
+  navigator.clipboard.writeText(c);
+  const btn = document.querySelector('.code-cp');
+  if (btn) { btn.textContent = 'Copied!'; setTimeout(() => { const b = document.querySelector('.code-cp'); if(b) b.textContent='Copy'; }, 2000); }
+}
+
+// ── run ────────────────────────────────────────────────────────────────────────
+async function run() {
+  const v = document.getElementById('inp').value.trim();
+  if (!v || running) { if (!v) document.getElementById('inp').focus(); return; }
+  pendingInput = v; running = true;
+  resetAll(); setRunning(true); t0 = Date.now();
+  await streamSSE(`${API}/run/stream`, { project_input: v });
+}
+
+async function streamSSE(url, body) {
+  try {
+    const res = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const reader = res.body.getReader(), dec = new TextDecoder();
+    let buf = '';
+    while (true) {
+      const { done, value } = await reader.read(); if (done) break;
+      buf += dec.decode(value, { stream:true });
+      const lines = buf.split('\n'); buf = lines.pop();
+      for (const line of lines) {
+        if (line.startsWith('data: ')) { try { handleEvent(JSON.parse(line.slice(6))); } catch(e){} }
+      }
+    }
+  } catch(e) { console.warn('stream error', e); }
+  if (!document.getElementById('ov').classList.contains('open')) setRunning(false);
+}
+
+function setRunning(on) {
+  running = on;
+  const btn = document.getElementById('goBtn');
+  const pbar = document.getElementById('pbar');
+  const led = document.getElementById('led');
+  const ledTxt = document.getElementById('led-txt');
+  if (on) {
+    btn.disabled = true; btn.classList.add('busy');
+    document.getElementById('btn-ico').innerHTML = '<span class="spin"></span>';
+    document.getElementById('btn-lbl').textContent = 'Running';
+    led.className = 'dot run'; ledTxt.textContent = 'Running';
+    pbar.className = 'pbar-fill sweep';
+  } else {
+    btn.disabled = false; btn.classList.remove('busy');
+    document.getElementById('btn-ico').textContent = '▶';
+    document.getElementById('btn-lbl').textContent = 'Run';
+    led.className = 'dot ok'; ledTxt.textContent = 'Done';
+    pbar.className = 'pbar-fill'; pbar.style.width = '100%';
+    setTimeout(() => { pbar.style.width = '0'; }, 600);
+  }
+}
+
+function handleEvent(ev) {
+  if (ev.type === 'awaiting_clarification') {
+    setRunning(false);
+    document.getElementById('led').className = 'dot wait';
+    document.getElementById('led-txt').textContent = 'Needs input';
+    showClarify(ev.questions || [], ev.clarity_score);
+  }
+  else if (ev.type === 'orchestrator' && ev.next_agent && ev.next_agent !== 'done') {
+    setNode(ev.next_agent, 'active');
+    addLog(`→ ${ev.next_agent}: ${ev.reasoning || ''}`, 'info');
+  }
+  else if (ev.type === 'agent_done') onAgentDone(ev);
+  else if (ev.type === 'pipeline_done') onPipelineDone(ev);
+}
+
+function onAgentDone({ agent, status, detail }) {
+  const ok = status === 'ok';
+  setNode(agent, ok ? 'done' : 'err', ok ? 'done' : 'failed');
+  const k = AMAP[agent] || agent;
+  if (detail) agData[k] = detail;
+
+  addLog(`${ok?'✓':'✗'} ${agent} ${ok?'done':'failed'}`, ok?'ok':'err');
+
+  if (agent === 'ba' && detail) {
+    setBadge('ba', `${detail.user_stories?.length||0} stories`);
+    if (!panelKey) openPanel('ba');
+  }
+  if (agent === 'scrum' && detail) {
+    setBadge('sc', `${detail.tickets?.length||0} tks`);
+    initTicketBar(detail);
+  }
+  if (agent === 'developer' && detail) {
+    files = detail.files || []; if (activeFile === null) activeFile = 0;
+    setBadge('dv', `${files.length} files`);
+    if (panelKey === 'dv') renderPanel('dv', 'Files');
+  }
+  if (agent === 'qa' && detail) {
+    const p = detail.tests_passed||0, t = detail.tests_run||0;
+    setBadge('qa', t > 0 ? `${p}/${t}` : detail.collection_failed ? 'err' : '—');
+    if (ok) { doneCount++; updateTicketBar(); setLoopActive(false); }
+    else { setLoopActive(true); } // QA failed → loop back
+    if (panelKey === 'qa') renderPanel('qa', 'Report');
+  }
+  if (agent === 'git' && detail) setBadge('gi', detail.tag || '—');
+  if (agent === 'github' && detail) setBadge('gh', detail.pr_number ? `PR #${detail.pr_number}` : 'pushed');
+  if (agent === 'devops' && detail) { setBadge('do', detail.status || 'ready'); if (!panelKey) openPanel('do'); }
+}
+
+function onPipelineDone(ev) {
+  const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+  document.getElementById('led-txt').textContent = `Done · ${elapsed}s`;
+  addLog(`Pipeline complete in ${elapsed}s`, 'ok');
+  allConnsOff();
+}
+
+// ── ticket bar ─────────────────────────────────────────────────────────────────
+function initTicketBar(sd) {
+  const tickets = sd.tickets || [];
+  totalTks = tickets.length; doneCount = 0;
+  const strip = document.getElementById('tk-strip');
+  strip.classList.add('show');
+  document.getElementById('tk-dots').innerHTML = tickets.map(t =>
+    `<div class="td" id="tkd-${t.id}" title="${t.title}"></div>`
+  ).join('');
+  document.getElementById('tk-count').textContent = `0 / ${totalTks}`;
+}
+
+function updateTicketBar() {
+  document.getElementById('tk-count').textContent = `${doneCount} / ${totalTks}`;
+  document.querySelectorAll('.td').forEach((d, i) => {
+    d.classList.remove('active','pass');
+    if (i < doneCount) d.classList.add('pass');
+    else if (i === doneCount) d.classList.add('active');
+  });
+}
+
+// ── log feed ───────────────────────────────────────────────────────────────────
+function addLog(msg, type = 'info') {
+  const feed = document.getElementById('logfeed');
+  const line = document.createElement('div');
+  line.className = `log-line ${type}`;
+  line.textContent = msg.length > 52 ? msg.slice(0, 49) + '…' : msg;
+  feed.appendChild(line);
+  while (feed.children.length > 7) feed.removeChild(feed.firstChild);
+  Array.from(feed.children).forEach((el, i, arr) => {
+    el.style.opacity = `${0.25 + 0.75 * (i / (arr.length - 1 || 1))}`;
+  });
+}
+
+// ── clarify ────────────────────────────────────────────────────────────────────
+function showClarify(qs, score) {
+  clarQs = qs; clarAns = {};
+  if (score) document.getElementById('ov-sub').textContent = `Clarity score ${score}/100 — let's refine`;
+  document.getElementById('ov-body').innerHTML = qs.map((q, i) => `
+    <div class="cq">
+      <div class="cq-n">Question ${i + 1}</div>
+      <div class="cq-t">${q.question}</div>
+      <div class="cq-w">💡 ${q.why_it_matters}</div>
+      <div class="cq-opts">${(q.example_answers||[]).map(a =>
+        `<div class="cq-opt" onclick="pickAns('${q.id}','${a.replace(/'/g,"\\'")}',this)">${a}</div>`
+      ).join('')}</div>
+      <input class="cq-inp" id="cqi-${q.id}" placeholder="Or type your answer…" oninput="clarAns['${q.id}']=this.value"/>
+    </div>`).join('');
+  document.getElementById('ov').classList.add('open');
+}
+
+function pickAns(id, ans, el) {
+  clarAns[id] = ans;
+  el.closest('.cq-opts').querySelectorAll('.cq-opt').forEach(o => o.classList.remove('sel'));
+  el.classList.add('sel');
+  const inp = document.getElementById('cqi-' + id);
+  if (inp) inp.value = ans;
+}
+
+async function submitClarify() {
+  const ans = {};
+  clarQs.forEach(q => {
+    const v = clarAns[q.id] || document.getElementById('cqi-' + q.id)?.value || '';
+    if (v.trim()) ans[q.id] = v.trim();
+  });
+  if (!Object.keys(ans).length) { alert('Please answer at least one question.'); return; }
+  document.getElementById('ov').classList.remove('open');
+  setRunning(true); t0 = Date.now();
+  await streamSSE(`${API}/clarify/stream`, { project_input: pendingInput, answers: ans });
+}
+
+// ── reset ──────────────────────────────────────────────────────────────────────
+function resetAll() {
+  ['ba','sc','dv','qa','gi','gh','do'].forEach(k => {
+    const nd = document.getElementById('nd-' + k);
+    const st = document.getElementById('st-' + k);
+    const bg = document.getElementById('bg-' + k);
+    if (nd) { nd.className = 'chip-node'; nd.style.setProperty('--nc', META[k]?.nc || '#34d399'); }
+    if (st) st.textContent = 'idle';
+    if (bg) bg.textContent = '—';
+  });
+  allConnsOff();
+  setLoopActive(false);
+  document.getElementById('tk-strip').classList.remove('show');
+  document.getElementById('logfeed').innerHTML = '';
+  files = []; activeFile = null; agData = {}; doneCount = 0;
+  closePanel();
+}
+
+// ── init ───────────────────────────────────────────────────────────────────────
+document.getElementById('inp').addEventListener('keydown', e => { if (e.key === 'Enter') run(); });
+
+const phs = [
+  'Task manager API with JWT auth and PostgreSQL…',
+  'Blog platform with posts, tags, comments and search…',
+  'Real-time chat app with rooms and message history…',
+  'CLI todo tool with SQLite and markdown export…',
+];
+let phi = 0;
+document.getElementById('inp').addEventListener('focus', () => {
+  if (!document.getElementById('inp').value)
+    document.getElementById('inp').placeholder = phs[phi++ % phs.length];
+});
+</script>
+</body>
+</html>
