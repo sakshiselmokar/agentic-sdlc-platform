@@ -19,27 +19,21 @@ Built using LangGraph, FastAPI, OpenRouter, and a team of specialized AI agents 
 
 ## Architecture Overview
 
-The platform simulates a complete software engineering team:
+```mermaid
+flowchart TD
+    A[Project Idea] --> B[Clarifier Agent]
+    B --> C[Business Analyst Agent]
+    C --> D[Scrum Master Agent]
+    D --> E[Developer Agent]
+    E --> F[QA Engineer Agent]
 
-Project Idea
-↓
-Clarifier Agent
-↓
-Business Analyst Agent
-↓
-Scrum Master Agent
-↓
-Developer Agent
-↓
-QA Engineer Agent
-↓
-Git Agent
-↓
-GitHub Agent
-↓
-DevOps Agent
-↓
-Deployment Ready Application
+    F -->|Tests Pass| G[Git Agent]
+    F -->|Tests Fail| E
+
+    G --> H[GitHub Agent]
+    H --> I[DevOps Agent]
+    I --> J[Deployment Ready Application]
+```
 
 Unlike traditional code-generation tools, the platform validates every generated feature through a QA feedback cycle. Failed tests are automatically returned to the Developer Agent, enabling iterative code regeneration until quality requirements are satisfied.
 
