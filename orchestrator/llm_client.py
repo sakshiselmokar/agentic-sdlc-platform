@@ -10,8 +10,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-ORCHESTRATOR_MODEL_DEFAULT = "openrouter/free"
-AGENT_MODEL_DEFAULT        = "openrouter/free"
+ORCHESTRATOR_MODEL_DEFAULT = "deepseek/deepseek-chat"
+AGENT_MODEL_DEFAULT        = "deepseek/deepseek-chat"
 
 def get_orchestrator_llm() -> ChatOpenAI:
     api_key = os.getenv("OPENROUTER_API_KEY")
