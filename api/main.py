@@ -204,7 +204,7 @@ def run_pipeline(request: ProjectRequest):
 
     try:
         graph = get_graph()
-        final_state: PlatformState = graph.invoke(initial_state, config={"recursion_limit": 200})
+        final_state: PlatformState = graph.invoke(initial_state, config={"recursion_limit": 2000})
     except Exception as e:
         logger.error(f"[{run_id}] Pipeline crashed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
