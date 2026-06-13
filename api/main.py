@@ -174,10 +174,12 @@ def _build_sse_stream(initial_state: PlatformState):
 
 # ── Endpoints ──────────────────────────────────────────────────────────────────
 
-@app.get("/health", methods=["GET", "HEAD"])
+# @app.get("/health", methods=["GET", "HEAD"])
+# def health():
+#     return {"status": "ok", "service": "agentic-sdlc-platform", "version": "0.2.0"}
+@app.api_route("/health", methods=["GET", "HEAD"])
 def health():
     return {"status": "ok", "service": "agentic-sdlc-platform", "version": "0.2.0"}
-
 
 @app.get("/graph/info")
 def graph_info():
