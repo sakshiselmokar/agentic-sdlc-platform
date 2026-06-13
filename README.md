@@ -1,3 +1,11 @@
+---
+title: Agentic SDLC Platform
+emoji: 🤖
+colorFrom: purple
+colorTo: blue
+sdk: docker
+pinned: true
+---
 # Agentic SDLC Platform
 
 🚀 **Live Demo:** https://agentic-sdlc-platform.up.railway.app/
