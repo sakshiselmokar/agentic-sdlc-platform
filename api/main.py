@@ -174,7 +174,7 @@ def _build_sse_stream(initial_state: PlatformState):
 
 # ── Endpoints ──────────────────────────────────────────────────────────────────
 
-@app.get("/health")
+@app.get("/health", methods=["GET", "HEAD"])
 def health():
     return {"status": "ok", "service": "agentic-sdlc-platform", "version": "0.2.0"}
 
